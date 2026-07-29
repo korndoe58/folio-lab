@@ -4,7 +4,7 @@
 ที่รองรับ **กองทุนรวมไทย / หุ้น SET / US ETF ในพอร์ตเดียว** พร้อมจัดการสกุลเงิน THB/USD
 และมี **AI commentary ภาษาไทย** อธิบายผลการลงทุนเป็นภาษาคน
 
-**สถานะ:** อยู่ขั้นวางแผน — พร้อมเริ่ม Session S0
+**สถานะ:** Session S0 เสร็จ (scaffold + guards เขียว) — รอเชื่อม GitHub/Vercel แล้วเริ่ม S1
 
 - [docs/ROADMAP.md](docs/ROADMAP.md) — roadmap + feature breakdown (what/why) ทั้ง 6 เฟส
 - [docs/SESSION-PLAN.md](docs/SESSION-PLAN.md) — แผนลงมือทำ 21 รอบ (session) พร้อมเกณฑ์ปิดรอบ

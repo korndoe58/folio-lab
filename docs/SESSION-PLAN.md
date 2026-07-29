@@ -236,7 +236,7 @@
 
 | Session | โหมด | สถานะ | วันที่ปิด | บันทึก |
 | --- | --- | --- | --- | --- |
-| S0 | SETUP | ⚪ ยังไม่เริ่ม | — | |
+| S0 | SETUP | ✅ เสร็จ (local ครบ) | 2026-07-29 | guards เขียวทั้งสี่ + smoke 3/3 + evidence ใน `artifacts/evidence/S0/` · ค้าง: push GitHub + เชื่อม Vercel (รอ URL repo จาก PO) |
 | S1 | AUTHOR | ⚪ ยังไม่เริ่ม | — | |
 | S2 | IMPLEMENT | ⚪ ยังไม่เริ่ม | — | |
 | S3 | IMPLEMENT | ⚪ ยังไม่เริ่ม | — | |
