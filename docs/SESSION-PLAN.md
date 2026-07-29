@@ -236,7 +236,7 @@
 
 | Session | โหมด | สถานะ | วันที่ปิด | บันทึก |
 | --- | --- | --- | --- | --- |
-| S0 | SETUP | ✅ เสร็จ | 2026-07-29 | guards เขียวทั้งสี่ + smoke 3/3 + evidence ใน `artifacts/evidence/S0/` · push ขึ้น github.com/korndoe58/folio-lab แล้ว · ค้างอย่างเดียว: PO กด import ใน Vercel |
+| S0 | SETUP | ✅ เสร็จ | 2026-07-29 | guards เขียวทั้งสี่ + smoke 3/3 · repo: github.com/korndoe58/folio-lab · live: folio-lab-gamma.vercel.app (ตรวจแล้ว 200 + render ถูกทั้ง light/dark) · evidence ครบใน `artifacts/evidence/S0/` |
 | S1 | AUTHOR | ⚪ ยังไม่เริ่ม | — | |
 | S2 | IMPLEMENT | ⚪ ยังไม่เริ่ม | — | |
 | S3 | IMPLEMENT | ⚪ ยังไม่เริ่ม | — | |
