@@ -1,0 +1,13 @@
+{
+  "app": {
+    "title": "folio-lab",
+    "tagline": "Backtest portfolios that mix Thai funds, Thai stocks, and global ETFs in one place",
+    "startBacktest": "Start a backtest",
+    "comingSoon": "In development, coming soon",
+    "disclaimer": "Past performance does not guarantee future returns. Nothing here is investment advice."
+  },
+  "lang": {
+    "switch": "ไทย",
+    "label": "Switch language"
+  }
+}
