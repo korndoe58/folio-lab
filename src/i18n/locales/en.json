@@ -9,5 +9,77 @@
   "lang": {
     "switch": "ไทย",
     "label": "Switch language"
+  },
+  "form": {
+    "heading": "Set up the portfolio to test",
+    "assets": "Portfolio holdings",
+    "symbol": "Symbol",
+    "symbolPlaceholder": "e.g. VTI",
+    "weight": "Weight (%)",
+    "addRow": "Add holding",
+    "removeRow": "Remove this holding",
+    "removeDisabled": "At least one holding is required",
+    "addDisabled": "Up to 10 holdings",
+    "evenWeights": "Split evenly",
+    "amount": "Starting amount",
+    "amountUnit": "US dollars",
+    "startYear": "From year",
+    "endYear": "To year",
+    "benchmark": "Compare with",
+    "submit": "Run backtest",
+    "submitting": "Running",
+    "checking": "Checking",
+    "weightTotal": "Total {sum}%",
+    "suggested": "Commonly used symbols"
+  },
+  "symbols": {
+    "vti": "Total US stock market",
+    "vxus": "Total international stock market",
+    "bnd": "US bonds",
+    "vnq": "US real estate",
+    "spy": "500 largest US companies"
+  },
+  "result": {
+    "emptyTitle": "No backtest yet",
+    "emptyHint": "Enter the holdings and weights you have in mind, then run the backtest",
+    "loading": "Calculating results",
+    "readyTitle": "Period used for the calculation",
+    "rangeValue": "{start} to {end}",
+    "monthsCovered": "{count} months",
+    "retry": "Try again",
+    "moreSoon": "The summary table and charts will appear here"
+  },
+  "validation": {
+    "weightSum": "Portfolio weights must add up to 100%. They currently total {sum}%",
+    "assetRequired": "Add at least one holding before running the backtest",
+    "symbolUnknown": "No data found for {symbol}. Check the spelling and try again",
+    "rangeOrder": "The starting year cannot be later than the ending year",
+    "rangeFuture": "You can select up to {lastMonth}, the latest month with complete data",
+    "amountPositive": "The starting amount must be a number greater than 0",
+    "weightRange": "Each weight must be a number between 0 and 100",
+    "linkInvalid": "This link has incomplete or invalid settings. Please set up the portfolio again",
+    "rangeTooShort": "The selected period is too short. At least 2 months of data are needed, so try widening it",
+    "symbolDuplicate": "This symbol is already in the portfolio"
+  },
+  "notice": {
+    "rangeClamped": "The period was adjusted to {start} to {end} based on the data available for {symbol}"
+  },
+  "error": {
+    "dataLoad": "Could not load price data. Please try again",
+    "noOverlap": "The holdings have no overlapping period with data. Adjust the period or change the holdings"
+  },
+  "months": {
+    "1": "January",
+    "2": "February",
+    "3": "March",
+    "4": "April",
+    "5": "May",
+    "6": "June",
+    "7": "July",
+    "8": "August",
+    "9": "September",
+    "10": "October",
+    "11": "November",
+    "12": "December"
   }
 }

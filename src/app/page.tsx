@@ -1,27 +1,18 @@
 "use client"
 
 import { ChartNoAxesCombined } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { SiteFooter } from "@/components/site-footer"
+import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import { useLanguage } from "@/i18n"
 
 export default function Home() {
-  const { lang, setLang, t } = useLanguage()
+  const { t } = useLanguage()
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex items-center justify-between px-6 py-4">
-        <span className="font-mono text-sm text-muted-foreground">{t("app.title")}</span>
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label={t("lang.label")}
-          onClick={() => setLang(lang === "th" ? "en" : "th")}
-        >
-          {t("lang.switch")}
-        </Button>
-      </header>
+      <SiteHeader />
 
       <main className="flex flex-1 items-center justify-center px-6">
         <Card className="w-full max-w-lg">
@@ -35,18 +26,17 @@ export default function Home() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-2">
-            <Button size="lg" disabled>
+            <Link
+              href="/backtest"
+              className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
               {t("app.startBacktest")}
-            </Button>
-            <span className="text-xs text-muted-foreground">{t("app.comingSoon")}</span>
+            </Link>
           </CardContent>
         </Card>
       </main>
 
-      <footer className="px-6 py-4">
-        <Separator className="mb-4" />
-        <p className="text-center text-xs text-muted-foreground">{t("app.disclaimer")}</p>
-      </footer>
+      <SiteFooter />
     </div>
   )
 }

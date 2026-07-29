@@ -9,10 +9,12 @@ export type Language = "th" | "en"
 const locales: Record<Language, unknown> = { th, en }
 const STORAGE_KEY = "folio-lab.lang"
 
+export type TranslateParams = Record<string, string | number>
+
 type LanguageContextValue = {
   lang: Language
   setLang: (lang: Language) => void
-  t: (key: string) => string
+  t: (key: string, params?: TranslateParams) => string
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null)
@@ -43,7 +45,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const t = useCallback(
-    (key: string) => resolve(locales[lang], key) ?? resolve(locales.th, key) ?? key,
+    (key: string, params?: TranslateParams) => {
+      const template = resolve(locales[lang], key) ?? resolve(locales.th, key) ?? key
+      if (!params) return template
+      return template.replace(/\{(\w+)\}/g, (match, name: string) =>
+        name in params ? String(params[name]) : match,
+      )
+    },
     [lang],
   )
 

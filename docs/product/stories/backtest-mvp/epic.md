@@ -79,8 +79,8 @@
 
 | US | ชื่อ | Priority | Session | Status | การ์ด |
 | --- | --- | --- | --- | --- | --- |
-| US-05 | ตั้งค่าพอร์ตที่จะทดสอบ | P0 | S4 | 🟢 Ready | [`./US-05-portfolio-config-form.md`](./US-05-portfolio-config-form.md) |
-| US-06 | เก็บค่าที่ตั้งไว้ในลิงก์ | P0 | S4 | 🟢 Ready | [`./US-06-url-state.md`](./US-06-url-state.md) |
+| US-05 | ตั้งค่าพอร์ตที่จะทดสอบ | P0 | S4 | ✅ Done | [`./US-05-portfolio-config-form.md`](./US-05-portfolio-config-form.md) |
+| US-06 | เก็บค่าที่ตั้งไว้ในลิงก์ | P0 | S4 | ✅ Done | [`./US-06-url-state.md`](./US-06-url-state.md) |
 | US-07 | ดูผลสรุปเทียบกับตลาด | P0 | S5 | 🟢 Ready | [`./US-07-run-summary-metrics.md`](./US-07-run-summary-metrics.md) |
 | US-08 | ดูเส้นมูลค่าพอร์ตตลอดช่วง | P1 | S6 | 🟢 Ready | [`./US-08-growth-chart.md`](./US-08-growth-chart.md) |
 | US-09 | ดูผลตอบแทนรายปี | P1 | S6 | 🟢 Ready | [`./US-09-annual-returns.md`](./US-09-annual-returns.md) |
@@ -131,6 +131,7 @@
 | --- | --- | --- | --- |
 | v1.0 | 2026-07-29 | PO (AI ช่วยร่าง) | epic shell แรก (S1) |
 | v1.1 | 2026-07-29 | PO (AI ช่วยร่าง) | ปิดผล audit S1 ครบ 21 จุด (PD-004, PD-005) + promote เป็น 🟢 Ready |
+| v1.2 | 2026-07-29 | PO (AI ช่วยร่าง) | S4 ปิด US-05 และ US-06 — ฟอร์มและลิงก์ใช้งานได้จริงบน route |
 
 ---
 
