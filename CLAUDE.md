@@ -8,6 +8,9 @@ folio-lab คือเครื่องมือ backtest พอร์ตลง
 ที่รองรับกองทุนไทย/หุ้น SET/US ETF ในพอร์ตเดียว พร้อมจัดการสกุลเงิน THB/USD
 เอกสารหลัก: [docs/ROADMAP.md](docs/ROADMAP.md) · แผนการทำงานรายรอบ: [docs/SESSION-PLAN.md](docs/SESSION-PLAN.md)
 
+Next.js เวอร์ชันใน repo นี้มี breaking changes จากที่โมเดลเคยรู้จัก — อ่าน [AGENTS.md](AGENTS.md)
+และเอกสารใน `node_modules/next/dist/docs/` ก่อนเขียนโค้ดที่แตะ API/convention ของ Next
+
 ## วิธีทำงาน (สำคัญ — อ่านก่อนแก้อะไร)
 
 งานทุกชิ้นเดินผ่าน practice **story-first** — spec เป็นการ์ด story ที่ผูกกับ route จริง แล้วจึง implement
