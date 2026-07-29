@@ -1,0 +1,22 @@
+
+ RUN  v4.1.10 /Users/supakorn.rat/Documents/Projects/folio-lab
+
+เดือนล่าสุดที่ปิดแล้ว: 2026-06
+
+ครั้งที่ 1 (คลังว่าง):
+  → ยิงออกไปที่ yahoo สำหรับ VTI (2011-12..2026-06)
+  ได้ 174 เดือน (2012-01..2026-06) จาก "yahoo"
+
+ครั้งที่ 2 (ช่วงเดิม):
+  ได้ 174 เดือน จาก "cache"
+
+สรุป
+  ยิงออกข้างนอกครั้งที่ 1: 1
+  ยิงออกข้างนอกเพิ่มในครั้งที่ 2: 0
+  แหล่งของครั้งที่ 2: cache
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  19:15:47
+   Duration  633ms (transform 34ms, setup 0ms, import 45ms, tests 518ms, environment 0ms)
+
