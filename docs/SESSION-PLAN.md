@@ -239,7 +239,7 @@
 | S0 | SETUP | ✅ เสร็จ | 2026-07-29 | guards เขียวทั้งสี่ + smoke 3/3 · repo: github.com/korndoe58/folio-lab · live: folio-lab-gamma.vercel.app (ตรวจแล้ว 200 + render ถูกทั้ง light/dark) · evidence ครบใน `artifacts/evidence/S0/` |
 | S1 | AUTHOR | ✅ เสร็จ | 2026-07-29 | epic 2 ใบ + US-01..11 ครบทุก lens · audit อิสระพบ 21 จุด (P1 สี่จุดที่จะทำให้ golden ล้ม) แก้ครบแล้ว · PD-004/PD-005 · PO อนุมัติ → 🟢 Ready ทั้ง 11 ใบ |
 | S2 | IMPLEMENT | ✅ เสร็จ | 2026-07-29 | US-01..03 ✅ Done · guards เขียวครบสี่ · tests 40 ผ่าน · ดึง VTI จริงครั้งเดียวแล้วครั้งที่สองมาจากคลัง (`artifacts/evidence/S2/`) · fixtures จริง 174 เดือน freeze แล้ว · PD-006 (Stooq ถูกบล็อก → Yahoo เป็นแหล่งหลัก) |
-| S3 | IMPLEMENT | ⚪ ยังไม่เริ่ม | — | |
+| S3 | IMPLEMENT | ✅ เสร็จ | 2026-07-29 | US-04 ✅ Done → **ปิดเฟส 0** · ชุดอ้างอิงเขียวทุกค่า (CAGR 10.31% vs 10.32%, Sharpe 0.78, MDD −23.55%) · tests 69 ผ่าน · เทสต์ความบริสุทธิ์ของ engine · PD-007 บันทึกส่วนต่างเดือนที่ฟื้นช่วง COVID |
 | S4 | IMPLEMENT | ⚪ ยังไม่เริ่ม | — | |
 | S5 | IMPLEMENT | ⚪ ยังไม่เริ่ม | — | |
 | S6 | IMPLEMENT | ⚪ ยังไม่เริ่ม | — | |

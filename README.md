@@ -4,7 +4,7 @@
 ที่รองรับ **กองทุนรวมไทย / หุ้น SET / US ETF ในพอร์ตเดียว** พร้อมจัดการสกุลเงิน THB/USD
 และมี **AI commentary ภาษาไทย** อธิบายผลการลงทุนเป็นภาษาคน
 
-**Live:** <https://folio-lab-gamma.vercel.app> · **สถานะ:** S2 เสร็จ — ท่อข้อมูลใช้งานได้จริง (ดึงราคา + แปลงเป็นผลตอบแทนรายเดือน + คลังข้อมูล + ชุดจำลอง) พร้อมเริ่ม S3 (เครื่องคำนวณ + golden tests)
+**Live:** <https://folio-lab-gamma.vercel.app> · **สถานะ:** 🎉 **เฟส 0 เสร็จสมบูรณ์** (S0–S3) — ท่อข้อมูล + เครื่องคำนวณที่พิสูจน์แล้วว่าตรงค่าอ้างอิงสากล พร้อมเริ่ม S4 (จอแรกที่กดได้)
 
 - [docs/ROADMAP.md](docs/ROADMAP.md) — roadmap + feature breakdown (what/why) ทั้ง 6 เฟส
 - [docs/SESSION-PLAN.md](docs/SESSION-PLAN.md) — แผนลงมือทำ 21 รอบ (session) พร้อมเกณฑ์ปิดรอบ
@@ -28,7 +28,7 @@ deploy บน Vercel
 
 | Phase | ของที่ได้ | Session | สถานะ |
 |---|---|---|---|
-| 0 | Foundation: scaffold, data adapters + cache, engine core + golden tests | S0–S3 | ⚪ ยังไม่เริ่ม |
+| 0 | Foundation: scaffold, data adapters + cache, engine core + golden tests | S0–S3 | ✅ เสร็จ |
 | 1 | 🎯 MVP: backtest พอร์ตเดียว + benchmark, growth/annual/drawdown, deploy public | S4–S8 | ⚪ ยังไม่เริ่ม |
 | 2 | เทียบ ≤3 พอร์ต, DCA/ถอน, rebalancing, rolling returns, shareable link | S9–S11 | ⚪ ยังไม่เริ่ม |
 | 3 | 🇹🇭 กองทุนไทย + หุ้น SET + multi-currency + เงินเฟ้อไทย | S12–S14 | ⚪ ยังไม่เริ่ม |

@@ -1,6 +1,6 @@
 # Epic: ฐานข้อมูลราคาและเครื่องคำนวณ (foundation)
 
-**Status:** 🟢 Ready (S1) · เส้นทาง: ⚪ → 🟡 → **🟢 Ready** → 🔨 In Dev → ✅ Done
+**Status:** ✅ Done (S3) — ครบทั้ง 4 story · เส้นทาง: ⚪ → 🟡 → 🟢 → 🔨 → **✅ Done**
 **Roadmap:** [Phase 0 — features 0.2–0.4](../../../ROADMAP.md) · **Session:** S1 author · S2–S3 implement
 
 > **อ่านก่อน (TL;DR)**
@@ -89,7 +89,7 @@ epic นี้ไม่มีหน้าจอ ตารางจึงแส�
 | US-01 | ดึงราคาผ่านสัญญากลางพร้อมแหล่งสำรอง | P0 | S2 | ✅ Done | [`./US-01-price-provider-us.md`](./US-01-price-provider-us.md) |
 | US-02 | แปลงราคารายวันเป็นผลตอบแทนรายเดือน | P0 | S2 | ✅ Done | [`./US-02-monthly-normalization.md`](./US-02-monthly-normalization.md) |
 | US-03 | เก็บผลตอบแทนลงคลัง + ชุดข้อมูลจำลอง | P0 | S2 | ✅ Done | [`./US-03-cache-stub-provider.md`](./US-03-cache-stub-provider.md) |
-| US-04 | คำนวณผลพอร์ตและค่าความเสี่ยงชุดแรก | P0 | S3 | 🟢 Ready | [`./US-04-engine-core-golden.md`](./US-04-engine-core-golden.md) |
+| US-04 | คำนวณผลพอร์ตและค่าความเสี่ยงชุดแรก | P0 | S3 | ✅ Done | [`./US-04-engine-core-golden.md`](./US-04-engine-core-golden.md) |
 
 ## §8 แผนที่ Route (Route Map)
 
@@ -128,6 +128,7 @@ US-05 เป็นต้นไปคือจุดที่ความสา�
 | --- | --- | --- | --- |
 | v1.0 | 2026-07-29 | PO (AI ช่วยร่าง) | epic shell แรก (S1) |
 | v1.1 | 2026-07-29 | PO (AI ช่วยร่าง) | ปิดผล audit S1 ครบ 21 จุด (PD-004, PD-005) + promote เป็น 🟢 Ready |
+| v1.2 | 2026-07-29 | PO (AI ช่วยร่าง) | ปิด epic — US-01..04 เสร็จครบใน S2–S3 ชุดอ้างอิงเขียวทุกค่า (PD-006, PD-007) |
 
 ---
 
