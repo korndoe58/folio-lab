@@ -237,7 +237,7 @@
 | Session | โหมด | สถานะ | วันที่ปิด | บันทึก |
 | --- | --- | --- | --- | --- |
 | S0 | SETUP | ✅ เสร็จ | 2026-07-29 | guards เขียวทั้งสี่ + smoke 3/3 · repo: github.com/korndoe58/folio-lab · live: folio-lab-gamma.vercel.app (ตรวจแล้ว 200 + render ถูกทั้ง light/dark) · evidence ครบใน `artifacts/evidence/S0/` |
-| S1 | AUTHOR | ⚪ ยังไม่เริ่ม | — | |
+| S1 | AUTHOR | ✅ เสร็จ | 2026-07-29 | epic 2 ใบ + US-01..11 ครบทุก lens · audit อิสระพบ 21 จุด (P1 สี่จุดที่จะทำให้ golden ล้ม) แก้ครบแล้ว · PD-004/PD-005 · PO อนุมัติ → 🟢 Ready ทั้ง 11 ใบ |
 | S2 | IMPLEMENT | ⚪ ยังไม่เริ่ม | — | |
 | S3 | IMPLEMENT | ⚪ ยังไม่เริ่ม | — | |
 | S4 | IMPLEMENT | ⚪ ยังไม่เริ่ม | — | |
