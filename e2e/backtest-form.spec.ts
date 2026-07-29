@@ -10,6 +10,8 @@ const FULL_LINK =
 const symbol = (page: Page, index: number) => page.locator(`#symbol-${index}`)
 const weight = (page: Page, index: number) => page.locator(`#weight-${index}`)
 const submit = (page: Page) => page.getByRole("button", { name: "เริ่มทดสอบ", exact: true })
+/** ผลลัพธ์พร้อมแล้ว — ตั้งแต่ US-07 เป็นต้นไปคือตารางสรุป (เดิมเป็นแถบช่วงเวลาขั้นต่ำ) */
+const resultsReady = (page: Page) => page.getByRole("heading", { name: "สรุปผลการทดสอบ" })
 
 async function fillPortfolio(page: Page, rows: Array<[string, string]>) {
   for (const [index, [sym, w]] of rows.entries()) {
@@ -46,7 +48,7 @@ test.describe("US-05 ฟอร์มตั้งค่าพอร์ต", () =>
 
     await expect(page).toHaveURL(/assets=VTI:60,BND:40/)
     await expect(page).toHaveURL(/amount=10000/)
-    await expect(page.getByTestId("used-range")).toBeVisible({ timeout: 10_000 })
+    await expect(resultsReady(page)).toBeVisible({ timeout: 10_000 })
     await page.screenshot({ path: `${EVIDENCE}/run-success-light.png`, fullPage: true })
   })
 
@@ -124,7 +126,7 @@ test.describe("US-05 ฟอร์มตั้งค่าพอร์ต", () =>
     await expect(weight(page, 2)).toHaveValue("33.33")
 
     await submit(page).click()
-    await expect(page.getByTestId("used-range")).toBeVisible({ timeout: 10_000 })
+    await expect(resultsReady(page)).toBeVisible({ timeout: 10_000 })
   })
 
   test("AC-CFG-14 ลบแถวสุดท้ายไม่ได้ และเพิ่มได้ไม่เกิน 10 แถว", async ({ page }) => {
@@ -158,7 +160,7 @@ test.describe("US-05 ฟอร์มตั้งค่าพอร์ต", () =>
     // ระหว่างทำงานปุ่มเปลี่ยนข้อความและกดไม่ได้
     const busy = page.getByRole("button", { name: "กำลังทดสอบ" })
     if (await busy.count()) await expect(busy).toBeDisabled()
-    await expect(page.getByTestId("used-range")).toBeVisible({ timeout: 10_000 })
+    await expect(resultsReady(page)).toBeVisible({ timeout: 10_000 })
   })
 })
 
@@ -170,17 +172,19 @@ test.describe("US-06 ค่าที่ตั้งไว้อยู่ใน�
     await expect(weight(page, 0)).toHaveValue("60")
     await expect(symbol(page, 1)).toHaveValue("BND")
     await expect(page.locator("#startYear")).toHaveValue("2015")
-    await expect(page.getByTestId("used-range")).toBeVisible({ timeout: 10_000 })
+    await expect(resultsReady(page)).toBeVisible({ timeout: 10_000 })
   })
 
   test("AC-URL-03 รีเฟรชแล้วค่าและผลยังอยู่", async ({ page }) => {
     await page.goto(FULL_LINK)
-    await expect(page.getByTestId("used-range")).toBeVisible({ timeout: 10_000 })
-    const before = await page.getByTestId("used-range").textContent()
+    await expect(resultsReady(page)).toBeVisible({ timeout: 10_000 })
+    const before = await page.getByTestId("portfolio-endBalance").textContent()
 
     await page.reload()
     await expect(symbol(page, 0)).toHaveValue("VTI")
-    await expect(page.getByTestId("used-range")).toHaveText(before ?? "", { timeout: 10_000 })
+    await expect(page.getByTestId("portfolio-endBalance")).toHaveText(before ?? "", {
+      timeout: 10_000,
+    })
   })
 
   test("AC-URL-05/06 ลิงก์โครงสร้างเสียแจ้ง V-008 แล้วแก้ต่อได้", async ({ page }) => {
@@ -196,7 +200,7 @@ test.describe("US-06 ค่าที่ตั้งไว้อยู่ใน�
       ["BND", "40"],
     ])
     await submit(page).click()
-    await expect(page.getByTestId("used-range")).toBeVisible({ timeout: 10_000 })
+    await expect(resultsReady(page)).toBeVisible({ timeout: 10_000 })
   })
 
   test("EC-URL-02 ลิงก์ที่อ่านออกแต่ผิดกฎฟอร์ม แจ้งข้อความรายช่อง ไม่ใช่ V-008", async ({ page }) => {
@@ -218,7 +222,7 @@ test.describe("US-06 ค่าที่ตั้งไว้อยู่ใน�
     ])
     await submit(page).click()
     await expect(page).toHaveURL(/assets=VTI:60,BND:40/)
-    await expect(page.getByTestId("used-range")).toBeVisible({ timeout: 10_000 })
+    await expect(resultsReady(page)).toBeVisible({ timeout: 10_000 })
 
     await weight(page, 0).fill("70")
     await weight(page, 1).fill("30")
@@ -243,7 +247,7 @@ test.describe("US-06 ค่าที่ตั้งไว้อยู่ใน�
   test("N-001 ช่วงถูกย่อตามข้อมูลที่มี", async ({ page }) => {
     await page.goto("/backtest?assets=NEWFUND:50,VTI:50&start=2012&end=2026")
 
-    await expect(page.getByTestId("used-range")).toBeVisible({ timeout: 10_000 })
+    await expect(resultsReady(page)).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText("ช่วงเวลาถูกปรับเป็น", { exact: false })).toBeVisible()
   })
 })
@@ -253,14 +257,14 @@ test.describe("การแสดงผลในสภาพแวดล้อ�
     const dark = await browser.newContext({ colorScheme: "dark" })
     const darkPage = await dark.newPage()
     await darkPage.goto(FULL_LINK)
-    await expect(darkPage.getByTestId("used-range")).toBeVisible({ timeout: 10_000 })
+    await expect(resultsReady(darkPage)).toBeVisible({ timeout: 10_000 })
     await darkPage.screenshot({ path: `${EVIDENCE}/run-success-dark.png`, fullPage: true })
     await dark.close()
 
     const mobile = await browser.newContext({ viewport: { width: 375, height: 812 } })
     const mobilePage = await mobile.newPage()
     await mobilePage.goto(FULL_LINK)
-    await expect(mobilePage.getByTestId("used-range")).toBeVisible({ timeout: 10_000 })
+    await expect(resultsReady(mobilePage)).toBeVisible({ timeout: 10_000 })
 
     const overflow = await mobilePage.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

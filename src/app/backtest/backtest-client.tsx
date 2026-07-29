@@ -13,7 +13,9 @@ import {
   validateConfig,
   type FormIssues,
 } from "@/lib/backtest/validation"
+import { assembleSummary } from "@/lib/backtest/summary"
 import { portfolioReturns } from "@/engine"
+import rfFixture from "@/data/fixtures/rf.json"
 import { useLanguage } from "@/i18n"
 import type { BacktestConfig } from "@/types/backtest"
 import { parseYearMonth, type MonthRange } from "@/types/series"
@@ -21,6 +23,9 @@ import { parseYearMonth, type MonthRange } from "@/types/series"
 const provider = getBrowserProvider()
 const LAST_CLOSED_MONTH = provider.lastClosedMonth()
 const LAST_CLOSED_YEAR = Number(LAST_CLOSED_MONTH.split("-")[0])
+
+/** อัตราปราศจากความเสี่ยงชุดที่ freeze ไว้ ใช้คำนวณ Sharpe และ Sortino (BR-ENG-11) */
+const RISK_FREE = rfFixture.returns
 
 export function BacktestClient() {
   const params = useSearchParams()
@@ -111,6 +116,7 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
         weight: Number(row.weight),
         returns: results[i].ok ? results[i].series.returns : [],
       }))
+      const benchmarkSeries = results[results.length - 1]
       const portfolio = portfolioReturns(assets)
 
       if (!portfolio.usedRange || portfolio.returns.length === 0) {
@@ -128,10 +134,25 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
           ? { symbol: portfolio.limitedBy[0] }
           : undefined
 
+      // ตัดตัวเทียบและอัตราปราศจากความเสี่ยงให้เป็นช่วงเดียวกับพอร์ต ไม่งั้นเป็นการเทียบคนละช่วง
+      const inRange = (series: { month: string; value: number }[]) =>
+        series.filter(
+          (item) =>
+            item.month >= portfolio.usedRange!.start && item.month <= portfolio.usedRange!.end,
+        )
+
+      const summary = assembleSummary({
+        portfolio: portfolio.returns,
+        benchmark: benchmarkSeries.ok ? inRange(benchmarkSeries.series.returns) : [],
+        riskFree: inRange(RISK_FREE),
+        amount: target.amount,
+      })
+
       setRun({
         kind: "ready",
+        summary,
         range: portfolio.usedRange,
-        months: portfolio.returns.length,
+        benchmarkSymbol: target.benchmark.trim().toUpperCase(),
         clamped: clampedBy,
       })
     },

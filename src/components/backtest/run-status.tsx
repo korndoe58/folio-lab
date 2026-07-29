@@ -3,23 +3,27 @@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import type { Summary } from "@/lib/backtest/summary"
 import { useLanguage } from "@/i18n"
 import { parseYearMonth, type MonthRange } from "@/types/series"
+import { SummaryTable } from "./summary-table"
 
-/**
- * แถบสถานะผลลัพธ์ขั้นต่ำของ S4 — ตารางสรุปเต็มและกราฟจะมาแทนที่ใน US-07 ถึง US-10
- * มีไว้เพื่อให้การรันจากลิงก์สาธิตได้จริงว่ามีอะไรเกิดขึ้น ไม่ใช่ปุ่มที่กดแล้วเงียบ
- */
 export type RunState =
   | { kind: "idle" }
   | { kind: "loading" }
-  | { kind: "ready"; range: MonthRange; months: number; clamped?: { symbol: string } }
+  | {
+      kind: "ready"
+      summary: Summary
+      range: MonthRange
+      benchmarkSymbol: string
+      clamped?: { symbol: string }
+    }
   | { kind: "error"; messageKey: string; params?: Record<string, string>; retryable: boolean }
 
 export function RunStatus({ state, onRetry }: { state: RunState; onRetry: () => void }) {
   const { t } = useLanguage()
 
-  const formatMonth = (month: string) => {
+  const monthLabel = (month: string) => {
     const { year, month: m } = parseYearMonth(month)
     return `${t(`months.${m}`)} ${year}`
   }
@@ -38,15 +42,20 @@ export function RunStatus({ state, onRetry }: { state: RunState; onRetry: () => 
   }
 
   if (state.kind === "loading") {
+    // โครงร่างของตาราง ไม่ใช่วงกลมหมุน (BR-SUM-09)
     return (
       <Card aria-busy="true">
         <CardHeader>
           <CardTitle className="text-base">{t("result.loading")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
-          <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
-          <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
-          <div className="h-4 w-3/5 animate-pulse rounded bg-muted" />
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="flex gap-3">
+              <div className="h-4 flex-1 animate-pulse rounded bg-muted" />
+              <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+              <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+            </div>
+          ))}
         </CardContent>
       </Card>
     )
@@ -68,31 +77,27 @@ export function RunStatus({ state, onRetry }: { state: RunState; onRetry: () => 
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{t("result.readyTitle")}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2">
-        <p className="text-lg font-medium tabular-nums" data-testid="used-range">
-          {t("result.rangeValue", {
-            start: formatMonth(state.range.start),
-            end: formatMonth(state.range.end),
+    <div className="flex flex-col gap-3">
+      {/* ประกาศให้โปรแกรมอ่านหน้าจอรู้ว่าผลพร้อมแล้ว (AC-SUM-10) */}
+      <p role="status" className="sr-only">
+        {t("summary.ready")}
+      </p>
+
+      <SummaryTable
+        summary={state.summary}
+        range={state.range}
+        benchmarkSymbol={state.benchmarkSymbol}
+      />
+
+      {state.clamped ? (
+        <p className="text-sm text-muted-foreground" role="status">
+          {t("notice.rangeClamped", {
+            start: monthLabel(state.range.start),
+            end: monthLabel(state.range.end),
+            symbol: state.clamped.symbol,
           })}
         </p>
-        <p className="text-sm text-muted-foreground tabular-nums">
-          {t("result.monthsCovered", { count: state.months })}
-        </p>
-        {state.clamped ? (
-          <p className="text-sm text-muted-foreground" role="status">
-            {t("notice.rangeClamped", {
-              start: formatMonth(state.range.start),
-              end: formatMonth(state.range.end),
-              symbol: state.clamped.symbol,
-            })}
-          </p>
-        ) : null}
-        <p className="mt-2 text-xs text-muted-foreground">{t("result.moreSoon")}</p>
-      </CardContent>
-    </Card>
+      ) : null}
+    </div>
   )
 }

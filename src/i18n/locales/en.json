@@ -81,5 +81,56 @@
     "10": "October",
     "11": "November",
     "12": "December"
+  },
+  "metric": {
+    "startAmount": {
+      "label": "Starting amount",
+      "hint": "The amount assumed to be invested at the start of the period"
+    },
+    "endBalance": {
+      "label": "Ending balance",
+      "hint": "What the starting amount grows into by the end of the selected period"
+    },
+    "cagr": {
+      "label": "Annualised return",
+      "hint": "The average yearly growth rate that would produce the same result if it were identical every year. Higher is better"
+    },
+    "stdev": {
+      "label": "Annualised volatility",
+      "hint": "How far returns swing from their average. Higher means a bumpier ride"
+    },
+    "bestYear": {
+      "label": "Best year",
+      "hint": "The best calendar year in the period, counting full years only"
+    },
+    "worstYear": {
+      "label": "Worst year",
+      "hint": "The worst calendar year in the period, counting full years only. It shows how much a bad year hurts"
+    },
+    "maxDrawdown": {
+      "label": "Maximum drawdown",
+      "hint": "The deepest fall from a previous peak before recovering to that peak"
+    },
+    "sharpe": {
+      "label": "Sharpe",
+      "hint": "Return earned above a risk-free deposit per unit of volatility. Higher means better paid for the risk"
+    },
+    "sortino": {
+      "label": "Sortino",
+      "hint": "Like Sharpe, but it only penalises downward swings. Useful if losses worry you more than bumpiness"
+    }
+  },
+  "summary": {
+    "heading": "Backtest summary",
+    "metricColumn": "Metric",
+    "portfolioColumn": "Your portfolio",
+    "benchmarkColumn": "Market ({symbol})",
+    "period": "Calculated from {start} to {end}, {count} months",
+    "better": "better than the market",
+    "worse": "below the market",
+    "equal": "same as the market",
+    "explain": "Show the explanation for {metric}",
+    "noDownside": "Cannot be calculated because there are no losing months",
+    "ready": "Backtest results are ready"
   }
 }
