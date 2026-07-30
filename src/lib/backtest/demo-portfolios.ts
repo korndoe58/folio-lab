@@ -1,0 +1,55 @@
+import type { BacktestConfig } from "@/types/backtest"
+import { encodeConfig } from "./url"
+
+export type DemoPortfolio = {
+  /** คีย์ของชื่อและคำอธิบายใน i18n */
+  key: string
+  config: BacktestConfig
+}
+
+/**
+ * พอร์ตตัวอย่างบนหน้าแรก (BR-DMO-02)
+ *
+ * ทุกชุดกำหนดค่าครบทุกช่องตาม BR-DMO-04 ไม่พึ่งค่าเริ่มต้นของฟอร์ม
+ * และใช้ช่วงปี 2015–2025 ที่ทุกสัญลักษณ์ในชุดมีข้อมูลครบ เพื่อไม่ให้ผู้ใช้ครั้งแรก
+ * เจอข้อความแจ้งว่าช่วงเวลาถูกย่อตั้งแต่จอแรก (BR-DMO-08)
+ */
+const SHARED = { startYear: 2015, endYear: 2025, amount: 10_000, benchmark: "SPY" } as const
+
+export const DEMO_PORTFOLIOS: DemoPortfolio[] = [
+  {
+    key: "balanced",
+    config: {
+      ...SHARED,
+      assets: [
+        { symbol: "VTI", weight: "60" },
+        { symbol: "BND", weight: "40" },
+      ],
+    },
+  },
+  {
+    key: "allUsStocks",
+    config: { ...SHARED, assets: [{ symbol: "VTI", weight: "100" }] },
+  },
+  {
+    key: "global",
+    config: {
+      ...SHARED,
+      assets: [
+        { symbol: "VTI", weight: "60" },
+        { symbol: "VXUS", weight: "25" },
+        { symbol: "BND", weight: "15" },
+      ],
+    },
+  },
+]
+
+/** ลิงก์ไปหน้าทดสอบพร้อมค่าครบ ทำให้ผลแสดงทันทีโดยไม่ต้องกดอะไรอีก (BR-DMO-03) */
+export function demoPortfolioHref(portfolio: DemoPortfolio): string {
+  return `/backtest?${encodeConfig(portfolio.config)}`
+}
+
+/** ส่วนผสมแบบอ่านง่ายสำหรับแสดงบนการ์ด เช่น "VTI 60% · BND 40%" */
+export function demoPortfolioMix(portfolio: DemoPortfolio): string {
+  return portfolio.config.assets.map((a) => `${a.symbol} ${a.weight}%`).join(" · ")
+}

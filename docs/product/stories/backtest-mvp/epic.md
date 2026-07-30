@@ -1,6 +1,6 @@
 # Epic: ทดสอบพอร์ตย้อนหลังและดูผล (backtest-mvp)
 
-**Status:** 🟢 Ready (S1) · เส้นทาง: ⚪ → 🟡 → **🟢 Ready** → 🔨 In Dev → ✅ Done
+**Status:** ✅ Done (S7) — ครบทั้ง 7 story · เหลือ S8 เป็นรอบ ship (ข้อมูลจริง + case study)
 **Roadmap:** [Phase 1 — features 1.1–1.6](../../../ROADMAP.md) · **Session:** S1 author · S4–S8 implement
 
 > **อ่านก่อน (TL;DR)**
@@ -84,8 +84,8 @@
 | US-07 | ดูผลสรุปเทียบกับตลาด | P0 | S5 | ✅ Done | [`./US-07-run-summary-metrics.md`](./US-07-run-summary-metrics.md) |
 | US-08 | ดูเส้นมูลค่าพอร์ตตลอดช่วง | P1 | S6 | ✅ Done | [`./US-08-growth-chart.md`](./US-08-growth-chart.md) |
 | US-09 | ดูผลตอบแทนรายปี | P1 | S6 | ✅ Done | [`./US-09-annual-returns.md`](./US-09-annual-returns.md) |
-| US-10 | ดูช่วงขาดทุนและเวลาฟื้น | P1 | S7 | 🟢 Ready | [`./US-10-drawdowns.md`](./US-10-drawdowns.md) |
-| US-11 | เริ่มจากพอร์ตตัวอย่าง | P1 | S7 | 🟢 Ready | [`./US-11-demo-portfolios-landing.md`](./US-11-demo-portfolios-landing.md) |
+| US-10 | ดูช่วงขาดทุนและเวลาฟื้น | P1 | S7 | ✅ Done | [`./US-10-drawdowns.md`](./US-10-drawdowns.md) |
+| US-11 | เริ่มจากพอร์ตตัวอย่าง | P1 | S7 | ✅ Done | [`./US-11-demo-portfolios-landing.md`](./US-11-demo-portfolios-landing.md) |
 
 ## §8 แผนที่ Route (Route Map)
 
@@ -133,6 +133,7 @@
 | v1.1 | 2026-07-29 | PO (AI ช่วยร่าง) | ปิดผล audit S1 ครบ 21 จุด (PD-004, PD-005) + promote เป็น 🟢 Ready |
 | v1.2 | 2026-07-29 | PO (AI ช่วยร่าง) | S4 ปิด US-05 และ US-06 — ฟอร์มและลิงก์ใช้งานได้จริงบน route |
 | v1.3 | 2026-07-30 | PO (AI ช่วยร่าง) | S6 ปิด US-08 และ US-09 — กราฟเส้นมูลค่าและผลตอบแทนรายปีขึ้นจอครบ |
+| v1.4 | 2026-07-30 | PO (AI ช่วยร่าง) | S7 ปิด US-10 และ US-11 — epic ครบทั้ง 7 story |
 
 ---
 

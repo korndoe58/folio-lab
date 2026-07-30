@@ -3,11 +3,12 @@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { AnnualData, GrowthData } from "@/lib/backtest/chart-data"
+import type { AnnualData, DrawdownData, GrowthData } from "@/lib/backtest/chart-data"
 import type { Summary } from "@/lib/backtest/summary"
 import { useLanguage } from "@/i18n"
 import { parseYearMonth, type MonthRange } from "@/types/series"
 import { AnnualSection } from "./annual-section"
+import { DrawdownSection } from "./drawdown-section"
 import { GrowthChart } from "./growth-chart"
 import { SummaryTable } from "./summary-table"
 
@@ -19,6 +20,7 @@ export type RunState =
       summary: Summary
       growth: GrowthData
       annual: AnnualData
+      drawdown: DrawdownData
       range: MonthRange
       benchmarkSymbol: string
       clamped?: { symbol: string }
@@ -97,6 +99,8 @@ export function RunStatus({ state, onRetry }: { state: RunState; onRetry: () => 
       <GrowthChart data={state.growth} benchmarkSymbol={state.benchmarkSymbol} />
 
       <AnnualSection data={state.annual} benchmarkSymbol={state.benchmarkSymbol} />
+
+      <DrawdownSection data={state.drawdown} benchmarkSymbol={state.benchmarkSymbol} />
 
       {state.clamped ? (
         <p className="text-sm text-muted-foreground" role="status">

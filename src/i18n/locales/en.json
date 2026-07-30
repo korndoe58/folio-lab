@@ -152,5 +152,37 @@
     "partialYear": "{count} months of data",
     "chartAlt": "Everything in this chart is available in the accompanying table",
     "yearEndCaption": "Portfolio and market value at each year end"
+  },
+  "drawdown": {
+    "heading": "Drawdowns and recovery",
+    "chartCaption": "How far below the previous peak the portfolio was, month by month",
+    "rank": "Rank",
+    "start": "Started falling",
+    "trough": "Lowest point",
+    "depth": "Depth",
+    "recovered": "Back to the peak",
+    "duration": "Time to recover",
+    "notRecovered": "Not yet recovered",
+    "found": "{count} drawdowns in total, showing the {shown} deepest",
+    "foundFew": "{count} drawdowns in total",
+    "none": "No drawdowns in the selected period. The portfolio never fell below a previous peak",
+    "months": "{count} months",
+    "years": "{count} years"
+  },
+  "demo": {
+    "heading": "Start from an example portfolio",
+    "hint": "Pick one and adjust every field from there",
+    "balanced": {
+      "name": "60/40 stocks and bonds",
+      "description": "The classic mix for growth with a gentler ride"
+    },
+    "allUsStocks": {
+      "name": "All US stocks",
+      "description": "Maximum growth focus, with the volatility that comes with it"
+    },
+    "global": {
+      "name": "Globally diversified",
+      "description": "US stocks, international stocks and bonds together"
+    }
   }
 }

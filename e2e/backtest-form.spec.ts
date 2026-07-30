@@ -166,11 +166,16 @@ test.describe("US-05 ฟอร์มตั้งค่าพอร์ต", () =>
       ["VTI", "60"],
       ["BND", "40"],
     ])
+    // กดรัวสองครั้ง — สิ่งที่ AC ต้องการคือ "ทำงานเพียงรอบเดียว" ซึ่งดูได้จากประวัติหน้า
+    // (การไล่จับสถานะปุ่มระหว่างทำงานไม่ได้ เพราะชุดข้อมูลจำลองเสร็จเร็วกว่าที่จะสังเกตทัน)
     await submit(page).click()
-    // ระหว่างทำงานปุ่มเปลี่ยนข้อความและกดไม่ได้
-    const busy = page.getByRole("button", { name: "กำลังทดสอบ" })
-    if (await busy.count()) await expect(busy).toBeDisabled()
+    await submit(page).click({ force: true })
+
     await expect(resultsReady(page)).toBeVisible({ timeout: 10_000 })
+    await expect(page).toHaveURL(/assets=VTI:60,BND:40/)
+
+    await page.goBack()
+    await expect(page).toHaveURL(/\/backtest$/)
   })
 })
 

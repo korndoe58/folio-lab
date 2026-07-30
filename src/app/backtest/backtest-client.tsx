@@ -13,7 +13,7 @@ import {
   validateConfig,
   type FormIssues,
 } from "@/lib/backtest/validation"
-import { buildAnnualData, buildGrowthData } from "@/lib/backtest/chart-data"
+import { buildAnnualData, buildDrawdownData, buildGrowthData } from "@/lib/backtest/chart-data"
 import { assembleSummary } from "@/lib/backtest/summary"
 import { portfolioReturns } from "@/engine"
 import rfFixture from "@/data/fixtures/rf.json"
@@ -156,6 +156,7 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
         summary,
         growth: buildGrowthData(portfolio.returns, benchmarkReturns, target.amount),
         annual: buildAnnualData(portfolio.returns, benchmarkReturns),
+        drawdown: buildDrawdownData(portfolio.returns, benchmarkReturns),
         range: portfolio.usedRange,
         benchmarkSymbol: target.benchmark.trim().toUpperCase(),
         clamped: clampedBy,

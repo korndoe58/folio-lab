@@ -1,4 +1,10 @@
-import { annualReturns, growthSeries } from "@/engine"
+import {
+  annualReturns,
+  drawdownPeriods,
+  growthSeries,
+  underwaterSeries,
+  type DrawdownPeriod,
+} from "@/engine"
 import { parseYearMonth, type MonthlyReturn, type YearMonth } from "@/types/series"
 
 /**
@@ -59,17 +65,20 @@ export function buildGrowthData(
     else yearEnd.push(row)
   }
 
-  const januaries = points
-    .map((p) => p.month)
-    .filter((m): m is YearMonth => m !== null && m.endsWith("-01"))
-  const step = Math.max(1, Math.ceil(januaries.length / 8))
-  const yearTicks = januaries.filter((_, i) => i % step === 0)
+  const yearTicks = pickYearTicks(points.map((p) => p.month))
 
   const logDisabled = points.some(
     (p) => p.portfolio <= 0 || (p.benchmark !== null && p.benchmark <= 0),
   )
 
   return { points, yearEnd, yearTicks, logDisabled }
+}
+
+/** คัดป้ายปีบนแกนเวลาไม่เกิน ~8 ตัว เพื่อไม่ให้ป้ายทับกันบนจอแคบ */
+function pickYearTicks(months: (YearMonth | null)[]): YearMonth[] {
+  const januaries = months.filter((m): m is YearMonth => m !== null && m.endsWith("-01"))
+  const step = Math.max(1, Math.ceil(januaries.length / 8))
+  return januaries.filter((_, i) => i % step === 0)
 }
 
 export type AnnualChartRow = {
@@ -109,4 +118,47 @@ export function buildAnnualData(
   })
 
   return { rows }
+}
+
+export type UnderwaterChartPoint = {
+  month: YearMonth
+  /** สัดส่วนที่ต่ำกว่าจุดสูงสุดเดิม เป็นค่าติดลบ (0 = อยู่ที่จุดสูงสุด) */
+  portfolio: number
+  benchmark: number | null
+}
+
+export type DrawdownData = {
+  points: UnderwaterChartPoint[]
+  /** ป้ายปีบนแกนเวลา คัดแบบเดียวกับกราฟมูลค่าเพื่อให้ระยะห่างสม่ำเสมอ */
+  yearTicks: YearMonth[]
+  /** ช่วงขาดทุนลึกที่สุด 5 อันดับ (BR-DDW-01) */
+  worst: DrawdownPeriod[]
+  /** จำนวนช่วงขาดทุนทั้งหมดที่พบ ใช้บอกผู้ใช้เมื่อมีน้อยกว่า 5 (BR-DDW-06) */
+  totalPeriods: number
+}
+
+/**
+ * ข้อมูลส่วนช่วงขาดทุน (US-10) — ค่าทุกตัวมาจากชั้นคำนวณตาม BR-DDW-08
+ * หน้าจอไม่หาจุดต่ำสุดหรือคำนวณเวลาฟื้นเอง
+ */
+export function buildDrawdownData(
+  portfolio: MonthlyReturn[],
+  benchmark: MonthlyReturn[],
+): DrawdownData {
+  const portfolioUnderwater = underwaterSeries(portfolio)
+  const benchmarkByMonth = new Map(underwaterSeries(benchmark).map((p) => [p.month, p.value]))
+
+  const points: UnderwaterChartPoint[] = portfolioUnderwater.map((p) => ({
+    month: p.month,
+    portfolio: p.value,
+    benchmark: benchmarkByMonth.get(p.month) ?? null,
+  }))
+
+  const all = drawdownPeriods(portfolio)
+  return {
+    points,
+    yearTicks: pickYearTicks(points.map((p) => p.month)),
+    worst: all.slice(0, 5),
+    totalPeriods: all.length,
+  }
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { endBalance, portfolioReturns } from "@/engine"
 import type { MonthlyReturn } from "@/types/series"
-import { buildAnnualData, buildGrowthData } from "./chart-data"
+import { buildAnnualData, buildDrawdownData, buildGrowthData } from "./chart-data"
 import bnd from "@/data/fixtures/bnd.json"
 import spy from "@/data/fixtures/spy.json"
 import vnq from "@/data/fixtures/vnq.json"
@@ -99,5 +99,65 @@ describe("buildAnnualData (US-09)", () => {
     const single = buildAnnualData(portfolio.slice(0, 6), benchmark.slice(0, 6))
     expect(single.rows).toHaveLength(1)
     expect(single.rows[0].portfolioMonths).toBe(6)
+  })
+})
+
+describe("buildDrawdownData (US-10)", () => {
+  const { portfolio, benchmark } = referencePortfolio()
+  const data = buildDrawdownData(portfolio, benchmark)
+
+  it("ห้าอันดับตรงกับตารางช่วงขาดทุนใน ROADMAP ภาคผนวก A", () => {
+    // แถวที่ 2 ใช้ค่าที่ข้อมูล freeze ของเราให้ ตาม PD-007
+    const expected = [
+      { start: "2022-01", trough: "2022-09", depth: -23.55, recoveredAt: "2024-03", months: 18 },
+      { start: "2020-01", trough: "2020-03", depth: -17.35, recoveredAt: "2020-07", months: 4 },
+      { start: "2018-09", trough: "2018-12", depth: -10.18, recoveredAt: "2019-04", months: 4 },
+      { start: "2015-06", trough: "2016-02", depth: -8.48, recoveredAt: "2016-07", months: 5 },
+      { start: "2012-04", trough: "2012-05", depth: -6.23, recoveredAt: "2012-08", months: 3 },
+    ]
+    expect(data.worst).toHaveLength(5)
+    data.worst.forEach((period, i) => {
+      expect(period.start, `แถว ${i + 1} เดือนเริ่มตก`).toBe(expected[i].start)
+      expect(period.trough, `แถว ${i + 1} เดือนต่ำสุด`).toBe(expected[i].trough)
+      expect(period.depth * 100, `แถว ${i + 1} ความลึก`).toBeCloseTo(expected[i].depth, 1)
+      expect(period.recoveredAt, `แถว ${i + 1} เดือนที่ฟื้น`).toBe(expected[i].recoveredAt)
+      expect(period.recoveryMonths, `แถว ${i + 1} เวลาฟื้น`).toBe(expected[i].months)
+    })
+  })
+
+  it("รายงานจำนวนช่วงทั้งหมดที่พบ มากกว่าห้าที่แสดง (BR-DDW-06)", () => {
+    expect(data.totalPeriods).toBeGreaterThan(5)
+  })
+
+  it("จุดลึกที่สุดของเส้นใต้น้ำตรงกับความลึกอันดับหนึ่ง", () => {
+    const lowest = Math.min(...data.points.map((p) => p.portfolio))
+    expect(lowest).toBeCloseTo(data.worst[0].depth, 6)
+  })
+
+  it("เส้นใต้น้ำมีจุดครบทุกเดือนและเริ่มที่ศูนย์หรือติดลบเสมอ", () => {
+    expect(data.points).toHaveLength(portfolio.length)
+    for (const point of data.points) expect(point.portfolio).toBeLessThanOrEqual(0)
+  })
+
+  it("พอร์ตที่ไม่เคยต่ำกว่าจุดสูงสุดเดิม ไม่มีช่วงขาดทุนเลย (AC-DDW-09)", () => {
+    const upOnly: MonthlyReturn[] = [
+      { month: "2020-01", value: 0.01 },
+      { month: "2020-02", value: 0.02 },
+      { month: "2020-03", value: 0.01 },
+    ]
+    const result = buildDrawdownData(upOnly, [])
+    expect(result.worst).toHaveLength(0)
+    expect(result.totalPeriods).toBe(0)
+  })
+
+  it("ช่วงที่ยังไม่ฟื้นจนจบข้อมูล รายงานเป็นไม่มีค่า ไม่ใช่ศูนย์ (BR-DDW-03)", () => {
+    const downOnly: MonthlyReturn[] = [
+      { month: "2020-01", value: 0.1 },
+      { month: "2020-02", value: -0.2 },
+      { month: "2020-03", value: -0.1 },
+    ]
+    const result = buildDrawdownData(downOnly, [])
+    expect(result.worst[0].recoveredAt).toBeNull()
+    expect(result.worst[0].recoveryMonths).toBeNull()
   })
 })

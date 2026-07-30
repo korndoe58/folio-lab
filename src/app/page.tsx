@@ -2,6 +2,7 @@
 
 import { ChartNoAxesCombined } from "lucide-react"
 import Link from "next/link"
+import { DemoPortfolios } from "@/components/home/demo-portfolios"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,7 +15,7 @@ export default function Home() {
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
 
-      <main className="flex flex-1 items-center justify-center px-6">
+      <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-8">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
             <ChartNoAxesCombined aria-hidden className="mx-auto mb-2 size-10 text-primary" />
@@ -34,6 +35,8 @@ export default function Home() {
             </Link>
           </CardContent>
         </Card>
+
+        <DemoPortfolios />
       </main>
 
       <SiteFooter />
