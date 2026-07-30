@@ -219,3 +219,32 @@ validation-glossary และไฟล์ใหม่ metric-glossary.md
 
 **ผลที่ตามมา:** แถวที่ 2 ของตารางช่วงขาดทุนในภาคผนวก A + หมายเหตุกำกับ · ค่าคาดหวังใน golden test
 ของ US-04 · เมื่อเปลี่ยนแหล่งข้อมูลหรือ freeze ใหม่ในอนาคต ต้องตรวจตารางนี้อีกครั้งและบันทึกส่วนต่างแบบเดียวกัน
+
+---
+
+### PD-008 — แหล่งที่มาของ UI component: base ทางการ + variants จาก shadcn studio
+
+| ช่อง | ค่า |
+| --- | --- |
+| วันที่ | 2026-07-30 |
+| สถานะ | ✅ Final |
+| ขอบเขต | ทั้ง project · design system |
+| สรุป | base primitives คงเป็น shadcn ทางการ (base-nova) — เพิ่ม shadcn studio (@shadcn-studio, ฟรี) เป็นแหล่ง variants/blocks ที่ต้องดูก่อนเขียน component ใหม่เอง |
+
+**บริบท:** PO สั่งตรวจว่า base components ใช้ shadcnstudio.com หรือไม่ และให้ปรับก่อนเริ่ม S6
+ผลตรวจ: ปัจจุบันใช้ registry ทางการของ shadcn (style base-nova บน Base UI) — ส่วน shadcn studio
+เป็น "ชั้น variants" ที่ **ต้องมี base ทางการติดตั้งอยู่ก่อนตามเอกสารของเขาเอง** และ item ใน registry
+ของเขาประกาศ dependency กลับมาที่ base ทางการ (เช่น alert-01 → alert) จึงใช้แทน base ไม่ได้เชิงโครงสร้าง
+
+**การตัดสินใจ:** (1) base primitives ใน `src/components/ui/` มาจาก registry ทางการเช่นเดิม
+(2) ก่อนเขียน component/บล็อก UI ใหม่ ให้ค้น `@shadcn-studio` ก่อน (`npx shadcn search @shadcn-studio -q <คำ>`)
+— ตรงสเปกการ์ดจึงใช้ ไม่ตรงจึงเขียนเอง (3) ติดตั้งผ่าน namespace `@shadcn-studio/<item>` ได้เลย
+CLI v4 resolve ให้อัตโนมัติแบบรู้ style จึง**ไม่แก้ components.json** (การ hardcode URL ที่ฝัง style
+จะพังเมื่อเปลี่ยน style) (4) ใช้เฉพาะ free tier — ห้ามผูก license/credential ใด ๆ ใน repo public
+
+**เหตุผล:** ได้คลัง variants ~986 รายการโดยไม่เพิ่ม dependency และไม่ rework จอที่ ship แล้ว
+(S0–S5 ผ่าน e2e บน base ปัจจุบัน) — ทิศทาง dependency เป็นข้อเท็จจริงที่เลือกไม่ได้ จึงบันทึกไว้กันสับสน
+
+**ผลที่ตามมา:** CLAUDE.md เพิ่มกติกาการหา component · การ์ดที่สร้าง UI ใหม่ตั้งแต่ S6 ระบุใน
+Implementation note ว่าค้น studio แล้วหรือยัง · หมายเหตุ S6: chart ของ studio เป็น dashboard block
+ไม่ตรง BR ของ US-08/09 จึงสร้างเองด้วย Recharts ตามแผนเดิม

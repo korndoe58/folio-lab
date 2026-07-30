@@ -50,7 +50,10 @@ unit test + สูตร/หน่วยเวลาที่เขียนไ�
 
 ## UI และ copy
 
-- ใช้ primitive ที่มีใน `src/components/ui/` ก่อนสร้างใหม่; ยึด shadcn/Radix + Tailwind ตามที่มีอยู่
+- ใช้ primitive ที่มีใน `src/components/ui/` ก่อนสร้างใหม่; ยึด shadcn (style base-nova บน Base UI) + Tailwind ตามที่มีอยู่
+- **ลำดับการหา component ใหม่ (PD-008):** primitive ที่มี → ค้น shadcn studio
+  (`npx shadcn search @shadcn-studio -q <คำ>` ติดตั้งด้วย `npx shadcn add @shadcn-studio/<item>` —
+  CLI resolve ให้เอง ไม่ต้องแก้ components.json, ใช้เฉพาะ free tier) → ตรงสเปกการ์ดจึงใช้ ไม่ตรงจึงเขียนเอง
 - **i18n:** ข้อความทุกอย่างผ่าน i18n layer มีคีย์ TH+EN — ห้าม hardcode ภาษาไทยใน JSX
 - **ห้ามในข้อความที่ผู้ใช้เห็น:** ศัพท์ implementation (`provider`, `adapter`, `cache`, `API`, `endpoint`,
   `stub`, `mock`, `fixture`, `series`, `fetch`, `backend` และคำไทยทำนองเดียวกัน) — พูดสิ่งที่ผู้ใช้เห็นแทน
