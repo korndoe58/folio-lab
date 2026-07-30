@@ -31,7 +31,7 @@ test.describe("US-13 เลือกสกุลเงินฐาน", () => {
     await expect(page.getByTestId("portfolio-startAmount")).toContainText("฿")
 
     // จุดที่ 2 ตารางมูลค่าสิ้นปีของกราฟ
-    await page.locator("summary").click()
+    await page.getByRole("group").filter({ hasText: "ดูเป็นตาราง" }).locator("summary").click()
     await expect(page.getByTestId("year-end-2025")).toContainText("฿")
 
     // จุดที่ 3 แกนตั้งของกราฟ

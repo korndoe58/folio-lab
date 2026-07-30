@@ -2,6 +2,7 @@
 
 import { Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { CopyLink } from "@/components/backtest/copy-link"
 import { formatCount, formatMoney, formatPercent, formatRatio } from "@/lib/backtest/format"
 import type { Currency } from "@/data/currency"
 import type { Summary, SummaryRow } from "@/lib/backtest/summary"
@@ -44,17 +45,21 @@ export function SummaryTable({
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="summary-heading">
-      <div>
-        <h2 id="summary-heading" className="text-lg font-semibold">
-          {t("summary.heading")}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {t("summary.period", {
-            start: monthLabel(range.start),
-            end: monthLabel(range.end),
-            count: summary.months,
-          })}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 id="summary-heading" className="text-lg font-semibold">
+            {t("summary.heading")}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t("summary.period", {
+              start: monthLabel(range.start),
+              end: monthLabel(range.end),
+              count: summary.months,
+            })}
+          </p>
+        </div>
+        {/* ปรากฏเฉพาะเมื่อมีผลลัพธ์แสดงอยู่ ซึ่งคือตอนที่ตารางนี้ถูกวาด (BR-CMP-82) */}
+        <CopyLink />
       </div>
 
       <div className="overflow-x-auto rounded-lg border">

@@ -28,6 +28,12 @@ export {
   type Flow,
   type PlannedTotal,
 } from "./cashflow"
+export {
+  ROLLING_WINDOWS,
+  rollingStats,
+  rollingWindows,
+  type RollingStats,
+} from "./rolling"
 export { growthSeries, endBalance, type GrowthPoint } from "./growth"
 export { cagr, annualizeGrowth, annualizedStdev, sharpe, sortino } from "./metrics"
 export { annualReturns, bestWorstFullYears, type AnnualReturn } from "./annual"

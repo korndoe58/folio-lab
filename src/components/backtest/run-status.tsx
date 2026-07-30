@@ -3,7 +3,8 @@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { AnnualData, DrawdownData, GrowthData } from "@/lib/backtest/chart-data"
+import type { AnnualData, DrawdownData, GrowthData, MonthlyRow } from "@/lib/backtest/chart-data"
+import type { RollingData } from "@/lib/backtest/rolling-data"
 import type { Summary } from "@/lib/backtest/summary"
 import { resolvePortfolioNames } from "@/lib/backtest/portfolio-names"
 import type { Currency } from "@/data/currency"
@@ -12,6 +13,8 @@ import { parseYearMonth, type MonthRange } from "@/types/series"
 import { AnnualSection } from "./annual-section"
 import { DrawdownSection } from "./drawdown-section"
 import { GrowthChart } from "./growth-chart"
+import { MonthlySection } from "./monthly-section"
+import { RollingSection } from "./rolling-section"
 import { SummaryTable } from "./summary-table"
 
 export type RunState =
@@ -23,6 +26,8 @@ export type RunState =
       growth: GrowthData
       annual: AnnualData
       drawdown: DrawdownData
+      rolling: RollingData
+      monthly: MonthlyRow[]
       range: MonthRange
       benchmarkSymbol: string
       currency: Currency
@@ -171,6 +176,17 @@ export function RunStatus({ state, onRetry }: { state: RunState; onRetry: () => 
         data={state.drawdown}
         benchmarkSymbol={state.benchmarkSymbol}
         portfolioNames={names}
+      />
+
+      <RollingSection data={state.rolling} portfolioNames={names} />
+
+      <MonthlySection
+        rows={state.monthly}
+        portfolioNames={names}
+        benchmarkSymbol={state.benchmarkSymbol}
+        range={state.range}
+        currency={state.currency}
+        inflationAdjusted={state.inflationAdjusted}
       />
 
       {state.clamped ? (

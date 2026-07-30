@@ -125,7 +125,8 @@
     "inflationGap": "Inflation for {years} has not been published yet, so those years are not adjusted. Every other year is",
     "twoReturns": "The table shows two kinds of return: the portfolio return measures the assets alone and ignores when you added money, while the return on your money counts the timing of every deposit and withdrawal.",
     "allocationTarget": "A portfolio that spreads added money by target weights pulls its weights back to target along the way, so its portfolio return no longer compares directly with the others.",
-    "portfolioDepleted": "This portfolio ran out in {month}, so its value is zero from then on."
+    "portfolioDepleted": "This portfolio ran out in {month}, so its value is zero from then on.",
+    "rollingWindowTooLong": "The period you chose is shorter than {window}, so there is nothing to show yet."
   },
   "error": {
     "dataLoad": "Could not load price data. Please try again",
@@ -198,6 +199,18 @@
     "rebalanceCount": {
       "label": "Times rebalanced",
       "hint": "How many times you would have had to pull the weights back over the period. This figure ignores fees and taxes."
+    },
+    "rollingReturn": {
+      "label": "Rolling return",
+      "hint": "If you had started in any month and held for the full stretch, where the result lands. It shows how much the outcome depends on timing."
+    },
+    "rollingAverage": {
+      "label": "Average across starting points",
+      "hint": "The average of every starting point for that stretch, not the compound return of the whole period. These are different numbers."
+    },
+    "positiveWindowShare": {
+      "label": "Share that made a gain",
+      "hint": "Out of every possible starting point, the percentage that ended in a gain after holding the full stretch."
     }
   },
   "summary": {
@@ -286,5 +299,39 @@
   "symbolGroups": {
     "global": "Global assets",
     "thai": "Thai stocks"
+  },
+  "rolling": {
+    "heading": "Rolling returns",
+    "intro": "If you had started in any month and held for the full stretch, where would the result land?",
+    "pureNote": "This section uses the portfolio return alone. It ignores money added or withdrawn and is not inflation-adjusted.",
+    "holdColumn": "Held for",
+    "portfolioColumn": "Portfolio",
+    "lowColumn": "Lowest",
+    "averageColumn": "Average",
+    "highColumn": "Highest",
+    "positiveColumn": "Made a gain",
+    "windowYears": "{count} years",
+    "windowCount": "{count} starting points",
+    "chartCaption": "The lowest-to-highest range for each holding period, with a tick at the average",
+    "chartAlt": "Each bar spans the lowest to the highest return for that holding period, and the tick across it marks the average. Every value is also in the table below.",
+    "averageWarning": "Average means the average across every starting point, not the compound return of the whole period. These are different numbers."
+  },
+  "monthly": {
+    "heading": "Monthly returns",
+    "headingWithCount": "Monthly returns ({count} months)",
+    "pureNote": "These are the portfolio returns alone. They ignore money added or withdrawn and are not inflation-adjusted.",
+    "monthColumn": "Month",
+    "save": "Save as a file",
+    "saveHint": "Save the monthly returns table as a file you can open in a spreadsheet",
+    "fileTitle": "Monthly returns · {start} to {end} · {currency} · {inflation}",
+    "fileNamePrefix": "monthly-returns",
+    "inflationOn": "inflation-adjusted",
+    "inflationOff": "not inflation-adjusted"
+  },
+  "share": {
+    "copy": "Copy link",
+    "copied": "Copied",
+    "manualHeading": "Copy this link yourself",
+    "manualHint": "Your browser would not copy it automatically. Select the whole thing and copy it."
   }
 }

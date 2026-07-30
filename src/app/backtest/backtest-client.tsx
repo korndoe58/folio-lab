@@ -15,7 +15,13 @@ import {
   NO_ISSUES,
   type FormIssues,
 } from "@/lib/backtest/validation"
-import { buildAnnualData, buildDrawdownData, buildGrowthData } from "@/lib/backtest/chart-data"
+import {
+  buildAnnualData,
+  buildDrawdownData,
+  buildGrowthData,
+  buildMonthlyData,
+} from "@/lib/backtest/chart-data"
+import { buildRollingData } from "@/lib/backtest/rolling-data"
 import { assembleSummary, type PortfolioOutcome } from "@/lib/backtest/summary"
 import {
   buildFlows,
@@ -251,6 +257,9 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
         }),
         annual: buildAnnualData(portfolioSeries, benchmarkReturns, inflation),
         drawdown: buildDrawdownData(portfolioSeries, benchmarkReturns),
+        // คิดจากชุดผลตอบแทนของพอร์ตล้วน ๆ จึงไม่รับทั้งเงินเข้าออกและตัวเลือกเงินเฟ้อ (BR-CMP-70)
+        rolling: buildRollingData(portfolioSeries),
+        monthly: buildMonthlyData(portfolioSeries, benchmarkReturns),
         range: shared.range,
         benchmarkSymbol: target.benchmark.trim().toUpperCase(),
         clamped: clampedBy,

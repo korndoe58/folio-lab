@@ -27,14 +27,14 @@ test.describe("US-08 เส้นมูลค่าพอร์ต", () => {
     await openReference(page)
     const endBalance = await page.getByTestId("portfolio-endBalance").textContent()
 
-    await page.locator("summary").click()
+    await page.getByRole("group").filter({ hasText: "ดูเป็นตาราง" }).locator("summary").click()
     // ปีสุดท้ายของตารางสิ้นปี ต้องเป็นค่าเดียวกับมูลค่าสุดท้ายในตารางสรุป
     await expect(page.getByTestId("year-end-2026")).toHaveText(endBalance!.trim())
   })
 
   test("AC-GRW-03 ตารางประกอบมีครบทุกปีและเปิดด้วยแป้นพิมพ์ได้", async ({ page }) => {
     await openReference(page)
-    await page.locator("summary").focus()
+    await page.getByRole("group").filter({ hasText: "ดูเป็นตาราง" }).locator("summary").focus()
     await page.keyboard.press("Enter")
     await expect(page.getByTestId("growth-year-end").locator("tr")).toHaveCount(15)
     await expect(page.getByTestId("year-end-2012")).toHaveText("$11,436")
@@ -58,7 +58,7 @@ test.describe("US-08 เส้นมูลค่าพอร์ต", () => {
   test("EC-GRW ช่วงที่ถูกย่อ กราฟครอบเฉพาะช่วงที่ใช้จริง", async ({ page }) => {
     await page.goto("/backtest?assets=NEWFUND:50,VTI:50&start=2012&end=2026&benchmark=SPY")
     await expect(growthChart(page)).toBeVisible({ timeout: 15_000 })
-    await page.locator("summary").click()
+    await page.getByRole("group").filter({ hasText: "ดูเป็นตาราง" }).locator("summary").click()
 
     const rows = page.getByTestId("growth-year-end").locator("tr")
     await expect(rows.first()).toContainText("2020")

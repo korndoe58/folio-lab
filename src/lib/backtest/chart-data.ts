@@ -191,6 +191,32 @@ export function buildAnnualData(
   return { rows }
 }
 
+/** หนึ่งแถวต่อเดือนในช่วงที่ใช้คำนวณ พร้อมค่าของทุกพอร์ตและตัวเทียบ (BR-CMP-72) */
+export type MonthlyRow = {
+  month: YearMonth
+  values: Array<number | null>
+  benchmark: number | null
+}
+
+/**
+ * ตารางผลตอบแทนรายเดือน (US-21) — เป็นชุดของพอร์ตล้วน ๆ จึงไม่ขึ้นกับเงินเข้าออก
+ * และไม่ถูกปรับเงินเฟ้อ (BR-CMP-81) · ไฟล์นี้แค่จัดรูป ไม่คำนวณอะไรใหม่
+ */
+export function buildMonthlyData(
+  portfolios: MonthlyReturn[][],
+  benchmark: MonthlyReturn[],
+): MonthlyRow[] {
+  const benchmarkByMonth = new Map(benchmark.map((r) => [r.month, r.value]))
+  // ทุกพอร์ตอยู่บนช่วงร่วมเดียวกันแล้ว จึงใช้ชุดแรกเป็นแกนเวลาได้ (BR-CMP-04)
+  const timeline = portfolios[0] ?? []
+
+  return timeline.map((point, i) => ({
+    month: point.month,
+    values: portfolios.map((series) => series[i]?.value ?? null),
+    benchmark: benchmarkByMonth.get(point.month) ?? null,
+  }))
+}
+
 export type UnderwaterChartPoint = FlatSeries & {
   month: YearMonth
   /** สัดส่วนที่ต่ำกว่าจุดสูงสุดเดิมของแต่ละพอร์ต เป็นค่าติดลบ (0 = อยู่ที่จุดสูงสุด) */
