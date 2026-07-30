@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest"
 import bnd from "@/data/fixtures/bnd.json"
+import cpi from "@/data/fixtures/th-cpi.json"
 import rf from "@/data/fixtures/rf.json"
 import spy from "@/data/fixtures/spy.json"
 import uponly from "@/data/fixtures/uponly.json"
@@ -124,6 +125,93 @@ describe("US-07 ค่าที่คำนวณไม่ได้", () => {
     expect(formatMoney(null, "USD")).toBe(NO_VALUE)
     expect(formatPercent(null)).toBe(NO_VALUE)
     expect(formatRatio(null)).toBe(NO_VALUE)
+  })
+})
+
+describe("US-15 ปรับเงินเฟ้อในตารางสรุป", () => {
+  const real = assembleSummary({
+    portfolio: REFERENCE,
+    benchmark: BENCHMARK,
+    riskFree: rf.returns as MonthlyReturn[],
+    amount: 10_000,
+    inflation: { rates: cpi.rates, enabled: true },
+  })
+
+  const realRow = (metric: string): SummaryRow => {
+    const row = real.rows.find((r) => r.metric === metric)
+    if (!row) throw new Error(`ไม่พบแถว ${metric}`)
+    return row
+  }
+
+  test("BR-INF-04 ค่าที่ควรถูกปรับ ลดลงและถูกกำกับว่าหักเงินเฟ้อแล้ว", () => {
+    for (const metric of ["endBalance", "cagr"]) {
+      expect(realRow(metric).adjusted, `แถว ${metric} ต้องถูกกำกับ`).toBe(true)
+      expect(realRow(metric).portfolio!).toBeLessThan(find(metric).portfolio!)
+      expect(realRow(metric).benchmark!).toBeLessThan(find(metric).benchmark!)
+    }
+    expect(realRow("bestYear").adjusted).toBe(true)
+    expect(realRow("worstYear").adjusted).toBe(true)
+  })
+
+  test("BR-INF-08 ค่าความเสี่ยงเท่าเดิมทุกหลัก และไม่ถูกกำกับ", () => {
+    for (const metric of ["stdev", "maxDrawdown", "sharpe", "sortino"]) {
+      expect(realRow(metric).portfolio, `แถว ${metric} ของพอร์ตต้องไม่ขยับ`).toBe(
+        find(metric).portfolio,
+      )
+      expect(realRow(metric).benchmark, `แถว ${metric} ของตัวเทียบต้องไม่ขยับ`).toBe(
+        find(metric).benchmark,
+      )
+      expect(realRow(metric).adjusted).toBeUndefined()
+    }
+    expect(realRow("startAmount").portfolio).toBe(10_000)
+    expect(realRow("startAmount").adjusted).toBeUndefined()
+  })
+
+  test("AC-INF-03 มูลค่าสุดท้ายและผลตอบแทนต่อปีตรวจทานกับการคำนวณมือได้", () => {
+    // ช่วงอ้างอิงคือ 2012 ถึง 2026 (174 เดือน) — ปี 2026 ยังไม่มีดัชนี ถือว่าเงินเฟ้อเป็นศูนย์
+    const years = Array.from({ length: 15 }, (_, i) => 2012 + i)
+    const factor = years.reduce((acc, year) => {
+      const rate = cpi.rates.find((r) => r.year === year)
+      return rate ? acc * (1 + rate.value) : acc
+    }, 1)
+
+    const nominalEnd = find("endBalance").portfolio!
+    expect(realRow("endBalance").portfolio).toBeCloseTo(nominalEnd / factor, 9)
+    expect(realRow("cagr").portfolio).toBeCloseTo(
+      (nominalEnd / factor / 10_000) ** (12 / 174) - 1,
+      12,
+    )
+  })
+
+  test("AC-INF-06 ปีที่ยังไม่มีดัชนีถูกรายงานออกมา", () => {
+    expect(cpi.rates.some((r) => r.year === 2026)).toBe(false)
+    expect(real.inflationGapYears).toEqual([2026])
+  })
+
+  test("BR-INF-05 ปีแย่ที่สุดคือ 2022 ที่เงินเฟ้อพุ่ง และค่าตรงกับสูตรหาร", () => {
+    const worst = realRow("worstYear")
+    const rate2022 = cpi.rates.find((r) => r.year === 2022)!
+
+    expect(worst.portfolioYear).toBe(2022)
+    // ปี 2022 ติดลบอยู่แล้ว พอหักเงินเฟ้อ 6.08% ยิ่งติดลบมากขึ้น
+    expect(worst.portfolio!).toBeLessThan(find("worstYear").portfolio!)
+    expect(worst.portfolio).toBeCloseTo(
+      (1 + find("worstYear").portfolio!) / (1 + rate2022.value) - 1,
+      12,
+    )
+  })
+
+  test("AC-INF-10 ปิดตัวเลือกแล้วได้ผลชุดเดิมทุกหลัก", () => {
+    const off = assembleSummary({
+      portfolio: REFERENCE,
+      benchmark: BENCHMARK,
+      riskFree: rf.returns as MonthlyReturn[],
+      amount: 10_000,
+      inflation: { rates: cpi.rates, enabled: false },
+    })
+
+    expect(off).toEqual(summary)
+    expect(off.inflationGapYears).toEqual([])
   })
 })
 

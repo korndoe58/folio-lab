@@ -3,10 +3,16 @@ import {
   annualizedStdev,
   bestWorstFullYears,
   cagr,
+  coveredYears,
+  cumulativeInflation,
   endBalance,
   maxDrawdown,
+  realAnnualReturns,
+  realCagr,
+  realEndBalance,
   sharpe,
   sortino,
+  type InflationRate,
 } from "@/engine"
 import type { MonthlyReturn } from "@/types/series"
 
@@ -29,11 +35,21 @@ export type SummaryRow = {
   comparison: "better" | "worse" | "equal" | null
   /** เหตุผลที่ค่านี้คำนวณไม่ได้ (คีย์ i18n) */
   unavailableReason?: string
+  /** ค่านี้หักเงินเฟ้อแล้ว — หน้าจอต้องกำกับให้เห็น ไม่ใช่เปลี่ยนตัวเลขเงียบ ๆ (BR-INF-10) */
+  adjusted?: boolean
+}
+
+/** ดัชนีเงินเฟ้อไทยและสถานะของตัวเลือกปรับเงินเฟ้อ (US-15) */
+export type InflationInput = {
+  rates: InflationRate[]
+  enabled: boolean
 }
 
 export type Summary = {
   rows: SummaryRow[]
   months: number
+  /** ปีที่ยังไม่มีดัชนีเงินเฟ้อประกาศ — ว่างเสมอเมื่อไม่ได้เปิดตัวเลือก (BR-INF-09) */
+  inflationGapYears: number[]
 }
 
 const DIRECTION: Record<string, Direction> = {
@@ -58,31 +74,57 @@ export function assembleSummary(input: {
   benchmark: MonthlyReturn[]
   riskFree: MonthlyReturn[]
   amount: number
+  inflation?: InflationInput
 }): Summary {
-  const { portfolio, benchmark, riskFree, amount } = input
+  const { portfolio, benchmark, riskFree, amount, inflation } = input
+  const adjusting = inflation?.enabled === true
+  const rates = inflation?.rates ?? []
 
-  const portfolioAnnual = bestWorstFullYears(annualReturns(portfolio))
-  const benchmarkAnnual = bestWorstFullYears(annualReturns(benchmark))
+  /**
+   * ค่าที่หักเงินเฟ้อได้ของหนึ่งชุดผลตอบแทน (BR-INF-04)
+   * ตัวคูณสะสมคิดจากปีที่ชุดนั้นแตะเอง เพราะพอร์ตกับตัวเทียบอาจมีเดือนไม่เท่ากัน
+   */
+  const deflate = (series: MonthlyReturn[]) => {
+    const nominalEnd = endBalance(series, amount)
+    if (!adjusting) {
+      return { endBalance: nominalEnd, cagr: cagr(series), missingYears: [] as number[] }
+    }
+    const { factor, missingYears } = cumulativeInflation(coveredYears(series), rates)
+    const realEnd = realEndBalance(nominalEnd, factor)
+    return { endBalance: realEnd, cagr: realCagr(realEnd, amount, series.length), missingYears }
+  }
+
+  const yearly = (series: MonthlyReturn[]) => {
+    const annual = annualReturns(series)
+    return bestWorstFullYears(adjusting ? realAnnualReturns(annual, rates) : annual)
+  }
+
+  const portfolioTotals = deflate(portfolio)
+  const benchmarkTotals = deflate(benchmark)
+  const portfolioAnnual = yearly(portfolio)
+  const benchmarkAnnual = yearly(benchmark)
   const portfolioDrawdown = maxDrawdown(portfolio)
   const benchmarkDrawdown = maxDrawdown(benchmark)
   const portfolioSortino = sortino(portfolio, riskFree)
   const benchmarkSortino = sortino(benchmark, riskFree)
 
+  // ค่าความเสี่ยงทุกตัวยังเป็นตัวเงินปกติ เพราะนิยามบนผลตอบแทนรายเดือน
+  // ซึ่งดัชนีเงินเฟ้อรายปีไม่มีความละเอียดพอจะปรับได้ (BR-INF-08)
   const rows: SummaryRow[] = [
     row("startAmount", "money", amount, amount),
-    row("endBalance", "money", endBalance(portfolio, amount), endBalance(benchmark, amount)),
-    row("cagr", "percent", cagr(portfolio), cagr(benchmark)),
+    adjusted(row("endBalance", "money", portfolioTotals.endBalance, benchmarkTotals.endBalance)),
+    adjusted(row("cagr", "percent", portfolioTotals.cagr, benchmarkTotals.cagr)),
     row("stdev", "percent", annualizedStdev(portfolio), annualizedStdev(benchmark)),
-    {
+    adjusted({
       ...row("bestYear", "percent", portfolioAnnual.best?.value ?? null, benchmarkAnnual.best?.value ?? null),
       portfolioYear: portfolioAnnual.best?.year,
       benchmarkYear: benchmarkAnnual.best?.year,
-    },
-    {
+    }),
+    adjusted({
       ...row("worstYear", "percent", portfolioAnnual.worst?.value ?? null, benchmarkAnnual.worst?.value ?? null),
       portfolioYear: portfolioAnnual.worst?.year,
       benchmarkYear: benchmarkAnnual.worst?.year,
-    },
+    }),
     row("maxDrawdown", "percent", portfolioDrawdown?.depth ?? null, benchmarkDrawdown?.depth ?? null),
     row("sharpe", "ratio", sharpe(portfolio, riskFree), sharpe(benchmark, riskFree)),
     {
@@ -91,7 +133,15 @@ export function assembleSummary(input: {
     },
   ]
 
-  return { rows, months: portfolio.length }
+  const inflationGapYears = [
+    ...new Set([...portfolioTotals.missingYears, ...benchmarkTotals.missingYears]),
+  ].sort((a, b) => a - b)
+
+  return { rows, months: portfolio.length, inflationGapYears }
+
+  function adjusted(target: SummaryRow): SummaryRow {
+    return adjusting ? { ...target, adjusted: true } : target
+  }
 }
 
 function row(

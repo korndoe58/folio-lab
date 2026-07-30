@@ -111,6 +111,30 @@ async function fetchRiskFreeRates() {
   return returns
 }
 
+/**
+ * อัตราเงินเฟ้อรายปีของไทย (FRED FPCPITOTLZGTHA) แปลงจากเปอร์เซ็นต์เป็นสัดส่วน
+ *
+ * แหล่งนี้มีความละเอียดแค่รายปี — ดูรายงาน spike ของ S12 ประกอบ ([PD-012](../docs/product/decision-log.md))
+ * จึงเก็บด้วยคีย์ `rates` และหน่วยเป็น `year` ไม่ใช่ `returns`/`month` เหมือนชุดอื่น
+ * เพื่อไม่ให้มีใครหยิบไปใช้เป็นชุดรายเดือนได้โดยไม่ตั้งใจ
+ */
+async function fetchThaiInflation() {
+  const url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=FPCPITOTLZGTHA"
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`fred http ${res.status}`)
+  const body = await res.text()
+
+  const rates = []
+  for (const line of body.trim().split("\n").slice(1)) {
+    const [date, value] = line.split(",")
+    const percent = Number(value)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? "") || !Number.isFinite(percent)) continue
+    rates.push({ year: Number(date.slice(0, 4)), value: percent / 100 })
+  }
+  if (rates.length === 0) throw new Error("fred: ไม่ได้ข้อมูลเงินเฟ้อสักปี")
+  return rates
+}
+
 /** ชุดสังเคราะห์สำหรับทดสอบพฤติกรรมขอบ ตาม BR-CCH-09 */
 function syntheticFixtures() {
   const months = (from, count) => {
@@ -147,12 +171,24 @@ function syntheticFixtures() {
   }
 }
 
+/**
+ * รันเฉพาะชุดที่ระบุได้ เช่น `node scripts/freeze-fixtures.mjs th-cpi`
+ * มีไว้เพราะการรันทั้งหมดจะขยับชุดตลาดที่ชุดทดสอบ golden ยึดไว้ ทั้งที่บางครั้งต้องการแค่ชุดเดียว
+ */
+const GROUPS = ["market", "rf", "th-cpi", "synthetic"]
+
 async function main() {
+  const only = process.argv[2] ?? null
+  if (only !== null && !GROUPS.includes(only)) {
+    throw new Error(`ไม่รู้จักชุด "${only}" — เลือกได้: ${GROUPS.join(", ")}`)
+  }
+  const wants = (group) => only === null || only === group
+
   await mkdir(OUT_DIR, { recursive: true })
   const lastClosedMonth = RANGE.end
   const summary = []
 
-  for (const symbol of SYMBOLS) {
+  for (const symbol of wants("market") ? SYMBOLS : []) {
     let rows
     let source
     try {
@@ -175,15 +211,31 @@ async function main() {
     summary.push({ symbol, source, count: returns.length, first: returns[0]?.month, last: returns.at(-1)?.month })
   }
 
-  const rfReturns = await fetchRiskFreeRates()
-  await writeFile(
-    path.join(OUT_DIR, "rf.json"),
-    JSON.stringify({ symbol: "RF", source: "fred-tb3ms", frozenFrom: `${RANGE.start}..${RANGE.end}`, returns: rfReturns }),
-    "utf8",
-  )
-  summary.push({ symbol: "RF", source: "fred", count: rfReturns.length, first: rfReturns[0]?.month, last: rfReturns.at(-1)?.month })
+  if (wants("rf")) {
+    const rfReturns = await fetchRiskFreeRates()
+    await writeFile(
+      path.join(OUT_DIR, "rf.json"),
+      JSON.stringify({ symbol: "RF", source: "fred-tb3ms", frozenFrom: `${RANGE.start}..${RANGE.end}`, returns: rfReturns }),
+      "utf8",
+    )
+    summary.push({ symbol: "RF", source: "fred", count: rfReturns.length, first: rfReturns[0]?.month, last: rfReturns.at(-1)?.month })
+  }
 
-  for (const [symbol, returns] of Object.entries(syntheticFixtures())) {
+  if (wants("th-cpi")) {
+    const cpiRates = await fetchThaiInflation()
+    await writeFile(
+      path.join(OUT_DIR, "th-cpi.json"),
+      JSON.stringify({
+        source: "fred-fpcpitotlzgtha",
+        frozenFrom: `${cpiRates[0].year}..${cpiRates.at(-1).year}`,
+        rates: cpiRates,
+      }),
+      "utf8",
+    )
+    summary.push({ symbol: "TH-CPI", source: "fred", count: cpiRates.length, first: cpiRates[0]?.year, last: cpiRates.at(-1)?.year })
+  }
+
+  for (const [symbol, returns] of Object.entries(wants("synthetic") ? syntheticFixtures() : {})) {
     await writeFile(
       path.join(OUT_DIR, `${symbol.toLowerCase()}.json`),
       JSON.stringify({ symbol, source: "synthetic", frozenFrom: "synthetic", returns }),

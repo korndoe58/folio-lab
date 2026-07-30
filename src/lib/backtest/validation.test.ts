@@ -14,6 +14,7 @@ const config = (overrides: Partial<BacktestConfig> = {}): BacktestConfig => ({
   amount: 10_000,
   benchmark: "SPY",
   baseCurrency: "USD",
+  inflationAdjusted: false,
   ...overrides,
 })
 

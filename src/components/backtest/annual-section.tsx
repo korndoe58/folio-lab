@@ -18,6 +18,8 @@ import { useLanguage } from "@/i18n"
 type Props = {
   data: AnnualData
   benchmarkSymbol: string
+  /** ค่าในส่วนนี้หักเงินเฟ้อแล้ว — ต้องกำกับให้เห็น ไม่ใช่เปลี่ยนตัวเลขเงียบ ๆ (BR-INF-10) */
+  inflationAdjusted?: boolean
 }
 
 /**
@@ -25,7 +27,7 @@ type Props = {
  * แท่งพอร์ต = ทึบ · แท่งตัวเทียบ = โปร่งมีขอบ — แยกกันได้โดยไม่ต้องพึ่งสี
  * ตารางแสดงคู่กับกราฟเสมอตาม BR-ANN-02 จึงทำหน้าที่เป็นข้อมูลเทียบเท่าไปในตัว
  */
-export function AnnualSection({ data, benchmarkSymbol }: Props) {
+export function AnnualSection({ data, benchmarkSymbol, inflationAdjusted = false }: Props) {
   const { t } = useLanguage()
   const benchmarkLabel = t("summary.benchmarkColumn", { symbol: benchmarkSymbol })
 
@@ -33,7 +35,7 @@ export function AnnualSection({ data, benchmarkSymbol }: Props) {
     <Card>
       <CardHeader>
         <h2 className="font-heading text-base leading-snug font-medium">
-          {t("chart.annualHeading")}
+          {inflationAdjusted ? t("chart.annualHeadingReal") : t("chart.annualHeading")}
         </h2>
       </CardHeader>
 
@@ -90,7 +92,9 @@ export function AnnualSection({ data, benchmarkSymbol }: Props) {
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[20rem] text-sm">
-            <caption className="sr-only">{t("chart.annualHeading")}</caption>
+            <caption className="sr-only">
+              {inflationAdjusted ? t("chart.annualHeadingReal") : t("chart.annualHeading")}
+            </caption>
             <thead>
               <tr className="border-b text-left text-xs text-muted-foreground">
                 <th scope="col" className="py-1 pr-3 font-medium">

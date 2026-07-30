@@ -11,8 +11,17 @@ export {
   type RebalanceMode,
 } from "./portfolio"
 export { growthSeries, endBalance, type GrowthPoint } from "./growth"
-export { cagr, annualizedStdev, sharpe, sortino } from "./metrics"
+export { cagr, annualizeGrowth, annualizedStdev, sharpe, sortino } from "./metrics"
 export { annualReturns, bestWorstFullYears, type AnnualReturn } from "./annual"
+export {
+  coveredYears,
+  cumulativeInflation,
+  realAnnualReturns,
+  realCagr,
+  realEndBalance,
+  type CumulativeInflation,
+  type InflationRate,
+} from "./inflation"
 export {
   underwaterSeries,
   drawdownPeriods,

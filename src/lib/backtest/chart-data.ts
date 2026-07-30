@@ -2,10 +2,12 @@ import {
   annualReturns,
   drawdownPeriods,
   growthSeries,
+  realAnnualReturns,
   underwaterSeries,
   type DrawdownPeriod,
 } from "@/engine"
 import { parseYearMonth, type MonthlyReturn, type YearMonth } from "@/types/series"
+import type { InflationInput } from "./summary"
 
 /**
  * ประกอบข้อมูลกราฟจากผลตอบแทนรายเดือน — ทุกค่ามาจากชั้นคำนวณ (BR-GRW-07, BR-ANN-07)
@@ -97,9 +99,16 @@ export type AnnualData = {
 export function buildAnnualData(
   portfolio: MonthlyReturn[],
   benchmark: MonthlyReturn[],
+  inflation?: InflationInput,
 ): AnnualData {
-  const portfolioAnnual = annualReturns(portfolio)
-  const benchmarkAnnual = new Map(annualReturns(benchmark).map((a) => [a.year, a]))
+  // ปรับทั้งพอร์ตและตัวเทียบพร้อมกันเสมอ ไม่งั้นเป็นการเทียบคนละหน่วย (BR-INF-04)
+  const yearly = (series: MonthlyReturn[]) => {
+    const annual = annualReturns(series)
+    return inflation?.enabled === true ? realAnnualReturns(annual, inflation.rates) : annual
+  }
+
+  const portfolioAnnual = yearly(portfolio)
+  const benchmarkAnnual = new Map(yearly(benchmark).map((a) => [a.year, a]))
   const years = [...new Set([...portfolioAnnual.map((a) => a.year), ...benchmarkAnnual.keys()])].sort(
     (a, b) => a - b,
   )

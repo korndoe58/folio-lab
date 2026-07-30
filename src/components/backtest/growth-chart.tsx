@@ -22,13 +22,20 @@ type Props = {
   data: GrowthData
   benchmarkSymbol: string
   currency: Currency
+  /** เส้นนี้ไม่ถูกปรับเงินเฟ้อเพราะดัชนีมีแค่รายปี — ต้องบอกผู้ใช้เมื่อเปิดตัวเลือก (BR-INF-07) */
+  inflationAdjusted?: boolean
 }
 
 /**
  * เส้นมูลค่าพอร์ตเทียบตัวเทียบ (US-08)
  * พอร์ต = เส้นทึบ · ตัวเทียบ = เส้นประ — แยกกันได้โดยไม่ต้องพึ่งสี (BR-GRW-06)
  */
-export function GrowthChart({ data, benchmarkSymbol, currency }: Props) {
+export function GrowthChart({
+  data,
+  benchmarkSymbol,
+  currency,
+  inflationAdjusted = false,
+}: Props) {
   const { t } = useLanguage()
   const [logScale, setLogScale] = useState(false)
 
@@ -65,6 +72,10 @@ export function GrowthChart({ data, benchmarkSymbol, currency }: Props) {
       </CardHeader>
 
       <CardContent className="flex flex-col gap-3">
+        {inflationAdjusted ? (
+          <p className="text-xs text-pretty text-muted-foreground">{t("chart.nominalNote")}</p>
+        ) : null}
+
         <div className="h-64 w-full" data-testid="growth-chart">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data.points} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>

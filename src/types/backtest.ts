@@ -14,6 +14,8 @@ export type BacktestConfig = {
   benchmark: string
   /** สกุลเงินที่ใช้มองผลลัพธ์ทั้งหมด (BR-CUR-01) */
   baseCurrency: Currency
+  /** หักเงินเฟ้อไทยออกจากค่าที่ปรับได้หรือไม่ (BR-INF-01) */
+  inflationAdjusted: boolean
 }
 
 /** ขอบเขตของฟอร์มตาม BR-CFG-02, BR-CFG-08 */
@@ -31,6 +33,11 @@ export const DEFAULT_BASE_CURRENCY: Currency = "THB"
  */
 export const LEGACY_LINK_CURRENCY: Currency = "USD"
 export const CURRENCY_OPTIONS: Currency[] = ["THB", "USD"]
+/**
+ * ฟอร์มเริ่มที่ไม่ปรับเงินเฟ้อ เพื่อให้ค่าที่เห็นครั้งแรกเทียบกับเครื่องมืออื่นได้ตรง ๆ (BR-INF-01)
+ * และเพื่อให้ลิงก์ที่แชร์ไปก่อนมีตัวเลือกนี้ยังให้ค่าเดิม (BR-INF-02)
+ */
+export const DEFAULT_INFLATION_ADJUSTED = false
 /** ช่วงเวลาเริ่มต้น = 10 ปีล่าสุด ตาม BR-CFG-16 */
 export const DEFAULT_YEARS_BACK = 10
 export const WEIGHT_SUM_TOLERANCE = 0.01

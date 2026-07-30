@@ -3,6 +3,7 @@ import {
   DEFAULT_AMOUNT,
   DEFAULT_BASE_CURRENCY,
   DEFAULT_BENCHMARK,
+  DEFAULT_INFLATION_ADJUSTED,
   DEFAULT_YEARS_BACK,
   LEGACY_LINK_CURRENCY,
   MAX_ASSETS,
@@ -34,6 +35,7 @@ export function defaultConfig(lastClosedYear: number): BacktestConfig {
     amount: DEFAULT_AMOUNT,
     benchmark: DEFAULT_BENCHMARK,
     baseCurrency: DEFAULT_BASE_CURRENCY,
+    inflationAdjusted: DEFAULT_INFLATION_ADJUSTED,
   }
 }
 
@@ -43,7 +45,9 @@ export function emptyRow(): PortfolioRow {
 
 /** ลิงก์ไม่มีค่าใดเลยหรือไม่ — กรณีนี้ถือเป็นฟอร์มเปล่าปกติ ไม่ใช่ข้อผิดพลาด (EC-URL-01) */
 export function isEmptyParams(params: UrlParams): boolean {
-  return ["assets", "start", "end", "amount", "benchmark", "base"].every((k) => params.get(k) === null)
+  return ["assets", "start", "end", "amount", "benchmark", "base", "real"].every(
+    (k) => params.get(k) === null,
+  )
 }
 
 export function decodeConfig(params: UrlParams, lastClosedYear: number): DecodeResult {
@@ -57,6 +61,8 @@ export function decodeConfig(params: UrlParams, lastClosedYear: number): DecodeR
   const benchmark = params.get("benchmark")?.trim().toUpperCase() || null
   const rawBase = params.get("base")
   const base = parseCurrency(rawBase)
+  const rawReal = params.get("real")
+  const real = parseFlag(rawReal)
 
   const config: BacktestConfig = {
     assets: assets?.rows.length ? assets.rows : fallback.assets,
@@ -66,6 +72,8 @@ export function decodeConfig(params: UrlParams, lastClosedYear: number): DecodeR
     benchmark: benchmark ?? fallback.benchmark,
     // ลิงก์ที่ไม่ระบุสกุลเงินคือลิงก์ที่แชร์ไปก่อนมีตัวเลือกนี้ จึงต้องเป็นดอลลาร์เหมือนเดิม (BR-CUR-03)
     baseCurrency: base ?? LEGACY_LINK_CURRENCY,
+    // ไม่ระบุ = ไม่ปรับเงินเฟ้อ ทั้งกับลิงก์เก่าและลิงก์ใหม่ (BR-INF-02, AC-INF-08)
+    inflationAdjusted: real ?? DEFAULT_INFLATION_ADJUSTED,
   }
 
   const structurallyBroken =
@@ -76,7 +84,8 @@ export function decodeConfig(params: UrlParams, lastClosedYear: number): DecodeR
     (params.get("end") !== null && endYear === null) ||
     (params.get("amount") !== null && amount === null) ||
     // สกุลเงินที่ไม่รู้จักถือว่าอ่านโครงสร้างไม่ออก (EC-CUR-01)
-    (rawBase !== null && base === null)
+    (rawBase !== null && base === null) ||
+    (rawReal !== null && real === null)
 
   return structurallyBroken ? { ok: false, partial: config } : { ok: true, config }
 }
@@ -95,6 +104,9 @@ export function encodeConfig(config: BacktestConfig): string {
     benchmark: config.benchmark.trim().toUpperCase(),
     base: config.baseCurrency,
   })
+  // ใส่เฉพาะตอนเปิด — ลิงก์ที่ไม่ปรับเงินเฟ้อจึงหน้าตาเหมือนเดิมทุกตัวอักษร (BR-INF-02)
+  if (config.inflationAdjusted) query.set("real", "1")
+
   // URLSearchParams เข้ารหัส , และ : ซึ่งอ่านยากในแถบที่อยู่ — คืนกลับให้อ่านออก
   return query.toString().replace(/%2C/g, ",").replace(/%3A/g, ":")
 }
@@ -103,6 +115,15 @@ function parseCurrency(raw: string | null): Currency | null {
   if (raw === null) return null
   const value = raw.trim().toUpperCase()
   return CURRENCY_OPTIONS.includes(value as Currency) ? (value as Currency) : null
+}
+
+/** ตัวเลือกเปิด/ปิดในลิงก์ — รับแค่ 1 กับ 0 ค่าอื่นถือว่าอ่านโครงสร้างไม่ออก */
+function parseFlag(raw: string | null): boolean | null {
+  if (raw === null) return null
+  const value = raw.trim()
+  if (value === "1") return true
+  if (value === "0") return false
+  return null
 }
 
 type ParsedAssets = { rows: PortfolioRow[]; broken: boolean }

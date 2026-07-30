@@ -10,9 +10,18 @@ const ANNUALIZE = Math.sqrt(MONTHS_PER_YEAR)
  */
 export function cagr(returns: MonthlyReturn[]): number | null {
   if (returns.length === 0) return null
-  const finalValue = endBalance(returns, 1)
-  if (finalValue <= 0) return null
-  return finalValue ** (MONTHS_PER_YEAR / returns.length) - 1
+  return annualizeGrowth(endBalance(returns, 1), returns.length)
+}
+
+/**
+ * สูตรกลางของ BR-ENG-05 — แปลงตัวคูณการเติบโตทั้งช่วงให้เป็นอัตราต่อปีแบบทบต้น
+ *
+ * แยกออกมาเพื่อให้ผลตอบแทนหลังหักเงินเฟ้อ (BR-INF-06) ใช้สูตรเดียวกันได้
+ * โดยไม่ต้องเขียนซ้ำ — สูตรนี้มีที่อยู่เดียวในโปรเจกต์
+ */
+export function annualizeGrowth(totalGrowth: number, months: number): number | null {
+  if (months <= 0 || totalGrowth <= 0) return null
+  return totalGrowth ** (MONTHS_PER_YEAR / months) - 1
 }
 
 /** ความผันผวนต่อปี (BR-ENG-06): ส่วนเบี่ยงเบนมาตรฐานตัวอย่าง (n−1) ของรายเดือน × √12 */

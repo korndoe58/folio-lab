@@ -77,6 +77,15 @@ export function SummaryTable({ summary, range, benchmarkSymbol, currency }: Prop
                   <th scope="row" className="px-4 py-2 text-left font-normal">
                     <span className="inline-flex items-center gap-1.5">
                       {label}
+                      {/* กำกับด้วยข้อความ ไม่ใช่สีอย่างเดียว เพื่อให้อ่านออกทุกทาง (BR-INF-10) */}
+                      {row.adjusted ? (
+                        <span
+                          data-testid={`adjusted-${row.metric}`}
+                          className="rounded bg-muted px-1.5 py-0.5 text-[0.65rem] font-medium text-muted-foreground"
+                        >
+                          {t("summary.realMark")}
+                        </span>
+                      ) : null}
                       <Tooltip>
                         <TooltipTrigger
                           type="button"

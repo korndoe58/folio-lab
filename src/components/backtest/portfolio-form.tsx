@@ -2,6 +2,7 @@
 
 import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ComboboxField } from "@/components/backtest/combobox-field"
@@ -233,6 +234,25 @@ export function PortfolioForm({
           inputMode="numeric"
           onChange={(value) => onChange({ ...config, endYear: Number(value) })}
         />
+
+        {/* ช่องสุดท้ายของตาราง — อยู่แถวเดียวกับช่องอื่นบนจอกว้าง และขึ้นบรรทัดใหม่บนจอแคบ */}
+        <div className="flex flex-col gap-1 sm:justify-end sm:pb-1">
+          <label className="flex items-start gap-2">
+            <Checkbox
+              id="inflationAdjusted"
+              className="mt-0.5"
+              checked={config.inflationAdjusted}
+              aria-describedby="inflationAdjusted-hint"
+              onCheckedChange={(checked) =>
+                onChange({ ...config, inflationAdjusted: checked === true })
+              }
+            />
+            <span className="text-xs font-medium">{t("form.inflationAdjusted")}</span>
+          </label>
+          <p id="inflationAdjusted-hint" className="text-xs text-pretty text-muted-foreground">
+            {t("form.inflationAdjustedHint")}
+          </p>
+        </div>
       </div>
 
       {formMessage ? (

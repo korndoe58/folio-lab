@@ -24,6 +24,7 @@ describe("US-06 อ่านค่าจากลิงก์", () => {
       baseCurrency: "USD",
       amount: 10_000,
       benchmark: "SPY",
+      inflationAdjusted: false,
     })
   })
 
@@ -153,6 +154,7 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
       baseCurrency: "USD",
       amount: 10_000,
       benchmark: "SPY",
+      inflationAdjusted: false,
     })
 
     expect(encoded).toBe(
@@ -173,6 +175,7 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
       amount: 25_000,
       benchmark: "SPY",
       baseCurrency: "THB" as const,
+      inflationAdjusted: true,
     }
 
     const result = decodeConfig(params(encodeConfig(config)), LAST_CLOSED_YEAR)
@@ -191,6 +194,7 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
       endYear: 2026,
       amount: 10_000,
       benchmark: "SPY",
+      inflationAdjusted: false,
     })
 
     expect(encoded).toContain("assets=VTI:100&")
@@ -201,5 +205,50 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
     const keys = [...new URLSearchParams(encoded).keys()].sort()
 
     expect(keys).toEqual(["amount", "assets", "base", "benchmark", "end", "start"])
+  })
+})
+
+describe("US-15 ตัวเลือกปรับเงินเฟ้อในลิงก์", () => {
+  /** ลิงก์รูปแบบเดียวกับที่บันทึกไว้ในหลักฐานของ S8 ก่อนมีตัวเลือกนี้ */
+  const LEGACY = "assets=VTI:60,BND:40&start=2015&end=2025&amount=10000&benchmark=SPY"
+
+  test("AC-INF-08 ลิงก์เก่าที่ไม่ระบุ ถือว่าไม่ปรับเงินเฟ้อ", () => {
+    const result = decodeConfig(params(LEGACY), LAST_CLOSED_YEAR)
+
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.config.inflationAdjusted).toBe(false)
+  })
+
+  test("AC-INF-07 เปิดอยู่แล้วลิงก์มีค่านั้น ปิดแล้วลิงก์เหมือนเดิมทุกตัวอักษร", () => {
+    const off = defaultConfig(LAST_CLOSED_YEAR)
+    const on = { ...off, inflationAdjusted: true }
+
+    expect(encodeConfig(on)).toBe(`${encodeConfig(off)}&real=1`)
+    expect(encodeConfig(off)).not.toContain("real")
+  })
+
+  test("อ่านค่าเปิดและปิดจากลิงก์ได้ทั้งคู่", () => {
+    for (const [raw, expected] of [
+      ["1", true],
+      ["0", false],
+    ] as const) {
+      const result = decodeConfig(params(`${LEGACY}&real=${raw}`), LAST_CLOSED_YEAR)
+      expect(result.ok).toBe(true)
+      if (result.ok) expect(result.config.inflationAdjusted).toBe(expected)
+    }
+  })
+
+  test("ค่าที่อ่านไม่ออก ถือว่าโครงสร้างเสีย แล้วเติมส่วนที่เหลือลงฟอร์มให้แก้ต่อ (V-008)", () => {
+    const result = decodeConfig(params(`${LEGACY}&real=yes`), LAST_CLOSED_YEAR)
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.partial.inflationAdjusted).toBe(false)
+    expect(result.partial.assets[0].symbol).toBe("VTI")
+  })
+
+  test("ลิงก์ที่มีแค่ตัวเลือกนี้ ไม่ถือเป็นฟอร์มเปล่า", () => {
+    expect(isEmptyParams(params("real=1"))).toBe(false)
+    expect(isEmptyParams(params(""))).toBe(true)
   })
 })

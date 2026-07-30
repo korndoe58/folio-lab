@@ -27,6 +27,8 @@ export type RunState =
       currency: Currency
       /** true เมื่อมีสินทรัพย์ถูกแปลงค่าเงิน — ต้องบอกผู้ใช้ตาม BR-CUR-05 */
       converted: boolean
+      /** true เมื่อผลชุดนี้หักเงินเฟ้อไทยแล้ว (US-15) */
+      inflationAdjusted: boolean
       clamped?: { symbol: string }
     }
   | { kind: "error"; messageKey: string; params?: Record<string, string>; retryable: boolean }
@@ -100,6 +102,19 @@ export function RunStatus({ state, onRetry }: { state: RunState; onRetry: () => 
         </p>
       ) : null}
 
+      {state.inflationAdjusted ? (
+        <p className="text-sm text-muted-foreground" role="status">
+          {t("notice.inflationOn")}
+        </p>
+      ) : null}
+
+      {state.inflationAdjusted && state.summary.inflationGapYears.length > 0 ? (
+        // N-003 — บอกว่าปีไหนยังไม่ถูกปรับ ไม่ใช่บอกว่าคำนวณผิดพลาด (BR-INF-09)
+        <p className="text-sm text-muted-foreground" role="status">
+          {t("notice.inflationGap", { years: state.summary.inflationGapYears.join(", ") })}
+        </p>
+      ) : null}
+
       <SummaryTable
         summary={state.summary}
         range={state.range}
@@ -111,9 +126,14 @@ export function RunStatus({ state, onRetry }: { state: RunState; onRetry: () => 
         data={state.growth}
         benchmarkSymbol={state.benchmarkSymbol}
         currency={state.currency}
+        inflationAdjusted={state.inflationAdjusted}
       />
 
-      <AnnualSection data={state.annual} benchmarkSymbol={state.benchmarkSymbol} />
+      <AnnualSection
+        data={state.annual}
+        benchmarkSymbol={state.benchmarkSymbol}
+        inflationAdjusted={state.inflationAdjusted}
+      />
 
       <DrawdownSection data={state.drawdown} benchmarkSymbol={state.benchmarkSymbol} />
 

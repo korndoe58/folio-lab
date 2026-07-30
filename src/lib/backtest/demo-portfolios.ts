@@ -14,13 +14,17 @@ export type DemoPortfolio = {
  * และใช้ช่วงปี 2015–2025 ที่ทุกสัญลักษณ์ในชุดมีข้อมูลครบ เพื่อไม่ให้ผู้ใช้ครั้งแรก
  * เจอข้อความแจ้งว่าช่วงเวลาถูกย่อตั้งแต่จอแรก (BR-DMO-08)
  */
-/** สามชุดเดิมเป็นสินทรัพย์ดอลลาร์ล้วน จึงระบุฐานดอลลาร์ให้ค่าเท่าเดิมทุกหลัก */
+/**
+ * สามชุดเดิมเป็นสินทรัพย์ดอลลาร์ล้วน จึงระบุฐานดอลลาร์ให้ค่าเท่าเดิมทุกหลัก
+ * และไม่ปรับเงินเฟ้อ เพื่อให้จอแรกที่ผู้ใช้เห็นเทียบกับเครื่องมืออื่นได้ตรง ๆ (BR-INF-01)
+ */
 const SHARED = {
   startYear: 2015,
   endYear: 2025,
   amount: 10_000,
   benchmark: "SPY",
   baseCurrency: "USD",
+  inflationAdjusted: false,
 } as const
 
 export const DEMO_PORTFOLIOS: DemoPortfolio[] = [
@@ -58,6 +62,7 @@ export const DEMO_PORTFOLIOS: DemoPortfolio[] = [
       amount: 350_000,
       benchmark: "SPY",
       baseCurrency: "THB",
+      inflationAdjusted: false,
       assets: [
         { symbol: "PTT.BK", weight: "30" },
         { symbol: "CPALL.BK", weight: "30" },

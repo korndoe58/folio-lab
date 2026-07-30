@@ -17,6 +17,7 @@ import {
 import { buildAnnualData, buildDrawdownData, buildGrowthData } from "@/lib/backtest/chart-data"
 import { assembleSummary } from "@/lib/backtest/summary"
 import { portfolioReturns } from "@/engine"
+import cpiFixture from "@/data/fixtures/th-cpi.json"
 import rfFixture from "@/data/fixtures/rf.json"
 import { useLanguage } from "@/i18n"
 import type { BacktestConfig } from "@/types/backtest"
@@ -28,6 +29,8 @@ const LAST_CLOSED_YEAR = Number(LAST_CLOSED_MONTH.split("-")[0])
 
 /** อัตราปราศจากความเสี่ยงชุดที่ freeze ไว้ ใช้คำนวณ Sharpe และ Sortino (BR-ENG-11) */
 const RISK_FREE = rfFixture.returns
+/** อัตราเงินเฟ้อไทยรายปีชุดที่ freeze ไว้ — ใช้ชุดนี้เสมอไม่ว่าเลือกดูผลเป็นสกุลใด (BR-INF-11) */
+const INFLATION_RATES = cpiFixture.rates
 
 
 export function BacktestClient() {
@@ -141,23 +144,26 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
         )
 
       const benchmarkReturns = inRange(loaded.benchmark)
+      const inflation = { rates: INFLATION_RATES, enabled: target.inflationAdjusted }
 
       const summary = assembleSummary({
         portfolio: portfolio.returns,
         benchmark: benchmarkReturns,
         riskFree: inRange(RISK_FREE),
         amount: target.amount,
+        inflation,
       })
 
       setRun({
         kind: "ready",
         summary,
-        // สกุลเงินมาจากค่าที่ใช้รันจริง ไม่ใช่ค่าที่กำลังเลือกอยู่ในฟอร์ม
-        // หน่วยบนจอจึงไม่เปลี่ยนก่อนตัวเลขชุดใหม่จะมา (EC-CUR-02)
+        // สกุลเงินและตัวเลือกปรับเงินเฟ้อมาจากค่าที่ใช้รันจริง ไม่ใช่ค่าที่กำลังเลือกอยู่ในฟอร์ม
+        // หน่วยและคำกำกับบนจอจึงไม่เปลี่ยนก่อนตัวเลขชุดใหม่จะมา (EC-CUR-02)
         currency: target.baseCurrency,
         converted: loaded.converted,
+        inflationAdjusted: target.inflationAdjusted,
         growth: buildGrowthData(portfolio.returns, benchmarkReturns, target.amount),
-        annual: buildAnnualData(portfolio.returns, benchmarkReturns),
+        annual: buildAnnualData(portfolio.returns, benchmarkReturns, inflation),
         drawdown: buildDrawdownData(portfolio.returns, benchmarkReturns),
         range: portfolio.usedRange,
         benchmarkSymbol: target.benchmark.trim().toUpperCase(),

@@ -38,7 +38,9 @@
     "yearFreeText": "Not in the list. You can type any year",
     "baseCurrency": "Show results in",
     "currencyFixed": "Thai baht or US dollars only",
-    "symbolThaiHint": "For Thai stocks add .BK to the ticker, e.g. PTT.BK"
+    "symbolThaiHint": "For Thai stocks add .BK to the ticker, e.g. PTT.BK",
+    "inflationAdjusted": "Adjust returns for inflation",
+    "inflationAdjustedHint": "Always uses Thai inflation, whichever currency you view results in, and only yearly figures can be adjusted"
   },
   "symbols": {
     "vti": "Total US stock market",
@@ -76,7 +78,9 @@
   },
   "notice": {
     "rangeClamped": "The period was adjusted to {start} to {end} based on the data available for {symbol}",
-    "converted": "All figures are shown in {currency}, converted at each month's exchange rate"
+    "converted": "All figures are shown in {currency}, converted at each month's exchange rate",
+    "inflationOn": "Figures marked after inflation show buying power compared with the start of the period, using Thai inflation",
+    "inflationGap": "Inflation for {years} has not been published yet, so those years are not adjusted. Every other year is"
   },
   "error": {
     "dataLoad": "Could not load price data. Please try again",
@@ -146,11 +150,14 @@
     "equal": "same as the market",
     "explain": "Show the explanation for {metric}",
     "noDownside": "Cannot be calculated because there are no losing months",
-    "ready": "Backtest results are ready"
+    "ready": "Backtest results are ready",
+    "realMark": "after inflation"
   },
   "chart": {
     "growthHeading": "Portfolio growth",
     "annualHeading": "Annual returns",
+    "annualHeadingReal": "Annual returns after inflation",
+    "nominalNote": "This line is still in nominal terms. It is not adjusted for inflation, because the available inflation rates are yearly and not detailed enough for a monthly chart.",
     "scaleLabel": "Value axis scale",
     "scaleLinear": "Linear scale",
     "scaleLog": "Log scale",

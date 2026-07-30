@@ -3,6 +3,7 @@ import { endBalance, portfolioReturns } from "@/engine"
 import type { MonthlyReturn } from "@/types/series"
 import { buildAnnualData, buildDrawdownData, buildGrowthData } from "./chart-data"
 import bnd from "@/data/fixtures/bnd.json"
+import cpi from "@/data/fixtures/th-cpi.json"
 import spy from "@/data/fixtures/spy.json"
 import vnq from "@/data/fixtures/vnq.json"
 import vti from "@/data/fixtures/vti.json"
@@ -99,6 +100,44 @@ describe("buildAnnualData (US-09)", () => {
     const single = buildAnnualData(portfolio.slice(0, 6), benchmark.slice(0, 6))
     expect(single.rows).toHaveLength(1)
     expect(single.rows[0].portfolioMonths).toBe(6)
+  })
+
+  describe("ปรับเงินเฟ้อ (US-15)", () => {
+    const real = buildAnnualData(portfolio, benchmark, { rates: cpi.rates, enabled: true })
+
+    it("BR-INF-04 ปรับทั้งพอร์ตและตัวเทียบพร้อมกัน ด้วยสูตรหาร", () => {
+      for (const year of [2019, 2022]) {
+        const rate = cpi.rates.find((r) => r.year === year)!
+        const before = data.rows.find((r) => r.year === year)!
+        const after = real.rows.find((r) => r.year === year)!
+
+        expect(after.portfolio).toBeCloseTo((1 + before.portfolio!) / (1 + rate.value) - 1, 12)
+        expect(after.benchmark).toBeCloseTo((1 + before.benchmark!) / (1 + rate.value) - 1, 12)
+      }
+    })
+
+    it("BR-INF-09 ปีที่ไม่มีดัชนีคงค่าเดิม", () => {
+      expect(cpi.rates.some((r) => r.year === 2026)).toBe(false)
+      expect(real.rows.find((r) => r.year === 2026)!.portfolio).toBe(
+        data.rows.find((r) => r.year === 2026)!.portfolio,
+      )
+    })
+
+    it("EC-INF-01 ปีที่เงินเฟ้อติดลบ ค่าสูงขึ้น", () => {
+      const before = data.rows.find((r) => r.year === 2020)!
+      const after = real.rows.find((r) => r.year === 2020)!
+      expect(after.portfolio!).toBeGreaterThan(before.portfolio!)
+    })
+
+    it("AC-INF-10 ปิดตัวเลือกแล้วได้แถวชุดเดิมทุกหลัก", () => {
+      expect(buildAnnualData(portfolio, benchmark, { rates: cpi.rates, enabled: false })).toEqual(
+        data,
+      )
+    })
+
+    it("จำนวนเดือนของปีไม่เต็มยังติดมาเหมือนเดิม (BR-ANN-03)", () => {
+      expect(real.rows.find((r) => r.year === 2026)!.portfolioMonths).toBe(6)
+    })
   })
 })
 
