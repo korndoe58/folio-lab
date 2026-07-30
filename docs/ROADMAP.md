@@ -3,7 +3,7 @@
 > เครื่องมือ Backtest พอร์ตลงทุนแนว [Portfolio Visualizer](https://www.portfoliovisualizer.com/backtest-portfolio)
 > ที่รองรับ **กองทุนรวมไทย/หุ้นไทย + พอร์ตผสม USD/THB** และมี **AI layer** อธิบายพอร์ตเป็นภาษาคน
 
-- **สถานะ:** ✅ เฟส 0 และ 1 เสร็จแล้ว (ใช้งานจริงที่ folio-lab-gamma.vercel.app) — ถัดไปเฟส 2
+- **สถานะ:** ✅ เฟส 0 และ 1 เสร็จแล้ว (ใช้งานจริงที่ folio-lab-gamma.vercel.app) — ถัดไป**เฟส 3 ตลาดไทย** (ยกมาก่อนเฟส 2 ตาม PD-011)
 - **วันที่เขียน:** 2026-07-28
 - **เจ้าของ:** Supakorn Rattanapet
 - **บทบาทของ project:** (1) Portfolio piece ประกอบการสมัครงานสาย AI Builder (2) เครื่องมือ backtest ใช้เองจริง
@@ -117,6 +117,11 @@ Next.js (App Router, TypeScript, Tailwind, shadcn/ui) — deploy Vercel
 | 1.7 | Deploy production + README กรณีศึกษา | Vercel production + README เล่า architecture/decisions | ตัว project กลายเป็นหลักฐานสมัครงานตั้งแต่ phase แรก ไม่ต้องรอจบ |
 
 **Success criteria:** URL public ใช้งานได้จริง end-to-end (พิมพ์ VTI/BND → เห็นครบ 1.2–1.5 ใน <5 วินาที), เลขตรง golden fixture, ใช้บนมือถือได้
+
+> **ลำดับที่ใช้จริง (PD-011):** หลังปิดเฟส 1 พบว่าหุ้นไทยใช้ได้แล้วผ่านแหล่งข้อมูลปัจจุบัน และอัตรา
+> แลกเปลี่ยนอยู่บนแหล่งเดียวกัน จึง**ยกเฟส 3 ขึ้นมาทำก่อนเฟส 2** และเรียงภายในเฟส 3 ใหม่เป็น
+> สกุลเงิน + หุ้นไทย (S9–S11) → spike กองทุนไทยและเงินเฟ้อ (S12) → ส่วนที่เหลือ (S13)
+> แล้วค่อยกลับมาทำเฟส 2 ที่ S14–S16 · เนื้อหาของแต่ละเฟสด้านล่างไม่เปลี่ยน เปลี่ยนแค่ลำดับ
 
 ### Phase 2 — Compare & Cashflows (~2 สัปดาห์)
 
