@@ -291,9 +291,11 @@ test.describe("US-18 ใส่เงินเพิ่มหรือถอน�
     await submit(page).click()
     // สองแถวใหม่หายไป และค่าที่เหลือกลับมาเท่าเดิมทุกหลัก
     await expect(soloCell(page, "totalContributed")).toHaveCount(0)
-    expect(await text(soloCell(page, "endBalance"))).toBe(before.endBalance)
-    expect(await text(soloCell(page, "cagr"))).toBe(before.cagr)
-    expect(await text(soloCell(page, "stdev"))).toBe(before.stdev)
+    // ใช้ตัวตรวจที่รอจนค่าตรง ไม่ใช่อ่านครั้งเดียว — ผลชุดใหม่มาแบบ async
+    // อ่านทันทีอาจได้ค่าของรอบก่อนที่ยังค้างอยู่บนจอ
+    await expect(soloCell(page, "endBalance")).toHaveText(before.endBalance)
+    await expect(soloCell(page, "cagr")).toHaveText(before.cagr)
+    await expect(soloCell(page, "stdev")).toHaveText(before.stdev)
   })
 
   test("EC-CMP-12 ช่วงสั้นกว่าหนึ่งงวด ไม่มีงวดเกิดขึ้นเลย", async ({ page }) => {

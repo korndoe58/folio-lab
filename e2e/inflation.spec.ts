@@ -131,7 +131,11 @@ test.describe("US-15 ตัวเลือกปรับเงินเฟ้�
     await page.getByRole("button", { name: "เริ่มทดสอบ", exact: true }).click()
     await expect(page.getByTestId("adjusted-cagr")).toHaveCount(0)
 
-    expect(await readRows(page)).toEqual(original)
+    // อ่านค่าแบบรอให้ตรง ไม่ใช่อ่านครั้งเดียว — ผลชุดใหม่มาแบบ async
+    // อ่านทันทีอาจได้ค่าของรอบก่อนที่ยังค้างอยู่บนจอ
+    await expect
+      .poll(async () => readRows(page), { timeout: 10_000 })
+      .toEqual(original)
     await expect(nominalNote(page)).toHaveCount(0)
     await expect(gapNotice(page)).toHaveCount(0)
   })

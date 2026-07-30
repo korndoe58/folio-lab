@@ -5,15 +5,23 @@ import {
   type SeriesResult,
   type YearMonth,
 } from "@/types/series"
+import advancBk from "@/data/fixtures/advanc-bk.json"
 import aotBk from "@/data/fixtures/aot-bk.json"
+import btcUsd from "@/data/fixtures/btc-usd.json"
 import bnd from "@/data/fixtures/bnd.json"
 import cpallBk from "@/data/fixtures/cpall-bk.json"
+import deltaBk from "@/data/fixtures/delta-bk.json"
 import downonly from "@/data/fixtures/downonly.json"
+import gld from "@/data/fixtures/gld.json"
+import kbankBk from "@/data/fixtures/kbank-bk.json"
 import newfund from "@/data/fixtures/newfund.json"
+import qqq from "@/data/fixtures/qqq.json"
 import rf from "@/data/fixtures/rf.json"
 import pttBk from "@/data/fixtures/ptt-bk.json"
 import spy from "@/data/fixtures/spy.json"
+import tdexBk from "@/data/fixtures/tdex-bk.json"
 import thbx from "@/data/fixtures/thbx.json"
+import tlt from "@/data/fixtures/tlt.json"
 import uponly from "@/data/fixtures/uponly.json"
 import vnq from "@/data/fixtures/vnq.json"
 import vti from "@/data/fixtures/vti.json"
@@ -38,6 +46,18 @@ const FIXTURES: Record<string, Fixture> = {
   "PTT.BK": pttBk as Fixture,
   "CPALL.BK": cpallBk as Fixture,
   "AOT.BK": aotBk as Fixture,
+  // ★ สองตัวนี้อยู่ในรายการแนะนำมาตั้งแต่ S11 แต่เพิ่งมีชุดจำลองที่ S16b —
+  // ก่อนหน้านี้เลือกจากรายการแล้วโหมดจำลองตอบว่าไม่พบข้อมูล (AC-CAT-05)
+  "ADVANC.BK": advancBk as Fixture,
+  "KBANK.BK": kbankBk as Fixture,
+  // ตัวแทนหมวดใหม่ของแคตตาล็อก 100 ตัว — มีเท่าที่ชุดทดสอบต้องใช้ (BR-CAT-13)
+  QQQ: qqq as Fixture,
+  GLD: gld as Fixture,
+  TLT: tlt as Fixture,
+  "TDEX.BK": tdexBk as Fixture,
+  "DELTA.BK": deltaBk as Fixture,
+  // ข้อมูลเริ่มปี 2014 — ใช้เดินเส้นทางย่อช่วงเวลาเมื่อจับคู่กับตัวข้อมูลยาว (AC-CAT-13)
+  "BTC-USD": btcUsd as Fixture,
 }
 
 /** สัญลักษณ์พิเศษที่บังคับพฤติกรรมความล้มเหลว เพื่อให้เดินเส้นทาง error บนหน้าจอได้ */

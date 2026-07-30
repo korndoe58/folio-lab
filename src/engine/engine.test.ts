@@ -2,12 +2,13 @@ import { describe, expect, test } from "vitest"
 import downonly from "@/data/fixtures/downonly.json"
 import rf from "@/data/fixtures/rf.json"
 import uponly from "@/data/fixtures/uponly.json"
-import type { MonthlyReturn } from "@/types/series"
+import { toYearMonth, type MonthlyReturn } from "@/types/series"
 import {
   annualReturns,
   annualizedStdev,
   bestWorstFullYears,
   cagr,
+  commonRange,
   drawdownPeriods,
   endBalance,
   growthSeries,
@@ -333,5 +334,37 @@ describe("US-19 วิธีปรับสมดุลพอร์ต", () => {
     expect(portfolioReturns(drifting).returns).toEqual(
       portfolioReturns(drifting, { rebalance: "annual" }).returns,
     )
+  })
+})
+
+describe("BR-ENG-14 ตัวที่จำกัดต้นช่วงกับตัวที่จำกัดท้ายช่วง", () => {
+  const span = (symbol: string, from: string, count: number) => ({
+    symbol,
+    returns: Array.from({ length: count }, (_, i) => {
+      const [y, m] = from.split("-").map(Number)
+      const zero = (y * 12 + (m - 1)) + i
+      return { month: toYearMonth(Math.floor(zero / 12), (zero % 12) + 1), value: 0.01 }
+    }),
+  })
+
+  test("ตัวที่ข้อมูลเริ่มช้าเป็นตัวจำกัดต้นช่วง ไม่ใช่ตัวที่จบท้ายช่วงพอดี", () => {
+    // ยาว: 2012-01 ถึง 2026-06 · สั้น: 2014-10 ถึง 2026-06
+    const shared = commonRange([span("VTI", "2012-01", 174), span("BTC-USD", "2014-10", 141)])!
+
+    expect(shared.range).toEqual({ start: "2014-10", end: "2026-06" })
+    // ★ ต้นช่วงถูกจำกัดโดยตัวสั้นเท่านั้น แม้ตัวยาวจะจบท้ายช่วงพอดีก็ตาม
+    expect(shared.limitedStartBy).toEqual(["BTC-USD"])
+    // ท้ายช่วงจบพร้อมกันทั้งคู่
+    expect(shared.limitedEndBy).toEqual(["VTI", "BTC-USD"])
+    // ของเดิมยังรวมทั้งสองแบบไว้เหมือนเดิม ไม่ทำสัญญาเก่าพัง
+    expect(shared.limitedBy).toContain("VTI")
+    expect(shared.limitedBy).toContain("BTC-USD")
+  })
+
+  test("ตัวที่จบเร็วเป็นตัวจำกัดท้ายช่วง", () => {
+    const shared = commonRange([span("A", "2012-01", 174), span("B", "2012-01", 100)])!
+
+    expect(shared.limitedStartBy).toEqual(["A", "B"])
+    expect(shared.limitedEndBy).toEqual(["B"])
   })
 })

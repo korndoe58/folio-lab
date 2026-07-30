@@ -83,14 +83,22 @@ test.describe("US-13 เลือกสกุลเงินฐาน", () => {
 })
 
 test.describe("US-14 หุ้นไทยใช้ได้เต็มรูปแบบ", () => {
-  test("AC-SET-01 รายการแนะนำแบ่งกลุ่มและมีหุ้นไทยครบห้าตัว", async ({ page }) => {
+  test("AC-SET-01 รายการแนะนำแบ่งกลุ่มและมีหุ้นไทยอย่างน้อยห้าตัว", async ({ page }) => {
     await page.goto("/backtest")
     await page.locator("#p0-symbol-0").click()
 
-    const options = page.getByRole("option")
-    await expect(options.filter({ hasText: ".BK" })).toHaveCount(5)
-    await expect(options.filter({ hasText: "หุ้นไทย" }).first()).toBeVisible()
-    await expect(options.filter({ hasText: "สินทรัพย์ต่างประเทศ" }).first()).toBeVisible()
+    /**
+     * BR-SET-02 บังคับว่าหุ้นไทยต้องมี **อย่างน้อย** 5 ตัว — เดิมเทสต์ผูกไว้ที่ 5 ตัวพอดี
+     * เพราะตอน S11 มีเท่านั้นจริง ๆ · S16b ขยายเป็น 50 ตัว ข้อบังคับเดิมจึงยังเป็นจริง
+     * แต่เลขตายตัวไม่ใช่ · ยึดตามกฎในการ์ดแทน (การ์ด US-14 ที่ ✅ Done ไม่ถูกแตะ)
+     */
+    const thaiOptions = page.getByRole("option").filter({ hasText: ".BK" })
+    expect(await thaiOptions.count()).toBeGreaterThanOrEqual(5)
+
+    // หัวข้อกลุ่มย้ายจากบรรทัดรองของตัวเลือกไปเป็นหัวข้อจริงในกล่องแล้ว (BR-CAT-15)
+    const groupHeadings = await page.locator('[data-slot="combobox-label"]').allInnerTexts()
+    expect(groupHeadings.some((h) => h.includes("ธนาคาร") || h.includes("พลังงาน"))).toBe(true)
+    expect(groupHeadings.some((h) => h.includes("หุ้นสหรัฐ"))).toBe(true)
   })
 
   test("AC-SET-02 เลือกหุ้นไทยจากรายการแล้วรันได้", async ({ page }) => {

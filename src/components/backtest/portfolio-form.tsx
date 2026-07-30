@@ -5,8 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ComboboxField } from "@/components/backtest/combobox-field"
-import { SUGGESTED_SYMBOLS, SYMBOL_GROUPS } from "@/lib/backtest/suggested-symbols"
+import { ComboboxField, type ComboboxItemGroup } from "@/components/backtest/combobox-field"
+import {
+  FULL_HISTORY_SINCE,
+  SYMBOL_GROUPS,
+  findSymbol,
+} from "@/lib/backtest/suggested-symbols"
 import {
   evenWeights,
   portfolioIssuesAt,
@@ -117,13 +121,25 @@ export function PortfolioForm({
 }: Props) {
   const { t } = useLanguage()
 
-  const symbolItems = SUGGESTED_SYMBOLS.map((item) => item.symbol)
-  // คำอธิบายบอกทั้งชื่อและกลุ่ม เพื่อให้เห็นว่ามีหุ้นไทยให้เลือกด้วย (BR-SET-01)
+  /** หมวดพร้อมหัวข้อสำหรับกล่องที่กางลงมา (BR-CAT-15) */
+  const symbolGroups: ComboboxItemGroup[] = SYMBOL_GROUPS.map((group) => ({
+    label: t(group.labelKey),
+    items: group.symbols.map((item) => item.symbol),
+  }))
+
+  /**
+   * คำอธิบายใต้แต่ละตัวเลือก — ชื่อสินทรัพย์ และปีที่ข้อมูลเริ่มเมื่อเริ่มช้ากว่าชุดอ้างอิง
+   *
+   * กำกับปีเฉพาะตัวที่เริ่มหลัง `FULL_HISTORY_SINCE` เท่านั้น (BR-CAT-04) เพราะถ้าใส่ทุกตัว
+   * มันจะกลายเป็นสัญญาณรบกวนจนคนไม่อ่าน — สิ่งที่ต้องสะดุดตาคือตัวที่จะย่อช่วงเวลาให้สั้นลง
+   */
   const describeSymbol = (symbol: string) => {
-    const group = SYMBOL_GROUPS.find((g) => g.symbols.some((s) => s.symbol === symbol))
-    const match = SUGGESTED_SYMBOLS.find((item) => item.symbol === symbol)
-    if (match && group) return `${t(match.labelKey)} · ${t(group.labelKey)}`
-    return match ? t(match.labelKey) : undefined
+    const match = findSymbol(symbol)
+    if (!match) return undefined
+    const name = t(match.labelKey)
+    return match.since > FULL_HISTORY_SINCE
+      ? `${name} · ${t("form.symbolSince", { year: match.since })}`
+      : name
   }
   const yearItems = Array.from({ length: YEAR_CHOICES }, (_, i) => String(lastClosedYear - i))
 
@@ -233,7 +249,7 @@ export function PortfolioForm({
                       <ComboboxField
                         id={`p${pIndex}-symbol-${index}`}
                         value={row.symbol}
-                        items={symbolItems}
+                        groups={symbolGroups}
                         describe={describeSymbol}
                         emptyLabel={t("form.symbolFreeText")}
                         placeholder={t("form.symbolPlaceholder")}
@@ -406,7 +422,7 @@ export function PortfolioForm({
             id="benchmark"
             label={t("form.benchmark")}
             value={config.benchmark}
-            items={symbolItems}
+            groups={symbolGroups}
             describe={describeSymbol}
             emptyLabel={t("form.symbolFreeText")}
             message={issueMessage(issues.benchmark, t)}
@@ -822,7 +838,9 @@ function Field({ id, label, value, message, inputMode, onChange, onBlur }: Field
 }
 
 type ComboboxRowProps = FieldProps & {
-  items: readonly string[]
+  /** ส่งมาอย่างใดอย่างหนึ่ง — รายการแบน หรือรายการแบ่งหมวด */
+  items?: readonly string[]
+  groups?: readonly ComboboxItemGroup[]
   emptyLabel: string
   describe?: (item: string) => string | undefined
 }
@@ -832,6 +850,7 @@ function ComboboxFieldRow({
   label,
   value,
   items,
+  groups,
   emptyLabel,
   describe,
   message,
@@ -849,6 +868,7 @@ function ComboboxFieldRow({
         id={id}
         value={value}
         items={items}
+        groups={groups}
         describe={describe}
         emptyLabel={emptyLabel}
         inputMode={inputMode}

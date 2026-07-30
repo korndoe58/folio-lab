@@ -11,7 +11,31 @@ import path from "node:path"
 
 const OUT_DIR = path.join(process.cwd(), "src/data/fixtures")
 const RANGE = { start: "2011-12", end: "2026-06" } // เผื่อเดือนฐาน ธ.ค. 2011 ตาม BR-PRV-10
-const SYMBOLS = ["VTI", "VNQ", "VXUS", "BND", "SPY"]
+/**
+ * ชุดตลาดที่ freeze ไว้ให้ StubProvider และชุดทดสอบ golden ใช้
+ *
+ * ไม่ได้ freeze ครบทั้งแคตตาล็อก 100 ตัวโดยตั้งใจ (BR-CAT-13) — ชุดจำลองถูกรวมเข้าไฟล์
+ * ที่ผู้ใช้จริงต้องโหลด จึงมีเท่าที่ชุดทดสอบต้องใช้จริงเท่านั้น
+ */
+const SYMBOLS = [
+  // ชุดอ้างอิงเดิม — golden fixture ยึดค่าจากตรงนี้ ห้ามขยับโดยไม่ตั้งใจ
+  "VTI", "VNQ", "VXUS", "BND", "SPY",
+  // หุ้นไทยที่รายการแนะนำมีมาตั้งแต่ S11
+  "PTT.BK", "CPALL.BK", "AOT.BK", "ADVANC.BK", "KBANK.BK",
+  // ตัวแทนหมวดใหม่ของแคตตาล็อก (S16b)
+  "QQQ", "GLD", "TLT", "TDEX.BK", "DELTA.BK",
+  // ตัวแทนสินทรัพย์ข้อมูลสั้น ใช้เดินเส้นทางย่อช่วงเวลา
+  "BTC-USD",
+]
+
+/** ชื่อไฟล์ของสัญลักษณ์ — `PTT.BK` → `ptt-bk` · `THB=X` → `thbx` · `BTC-USD` → `btc-usd` */
+function fixtureName(symbol) {
+  // `=` หายไปเลยเพื่อให้ตรงกับ `thbx.json` ที่ ship อยู่แล้ว ส่วน `.` กลายเป็นขีด
+  return symbol.toLowerCase().replace(/=/g, "").replace(/\./g, "-")
+}
+
+/** Stooq มีเฉพาะตลาดสหรัฐ — สัญลักษณ์ที่มีจุดหรือขีดกลางไปถาม Yahoo ตรง ๆ ไม่ต้องเสียรอบ */
+const isUsListed = (symbol) => !/[.-]/.test(symbol)
 
 function toStooqDate(month, edge) {
   const [year, m] = month.split("-").map(Number)
@@ -177,10 +201,23 @@ function syntheticFixtures() {
  */
 const GROUPS = ["market", "rf", "th-cpi", "synthetic"]
 
+/**
+ * ระบุสัญลักษณ์ทีละตัวได้ เช่น `node scripts/freeze-fixtures.mjs market QQQ GLD`
+ *
+ * ★ **ควรใช้เสมอเวลาเพิ่มสัญลักษณ์ใหม่** — รัน `market` เปล่า ๆ จะดึงชุดอ้างอิงใหม่ทั้งหมดด้วย
+ * และค่าจาก Yahoo ขยับระดับ 1e-7 ทุกครั้งที่ดึง (ปรับปันผลย้อนหลัง) ซึ่งพอที่จะทำให้
+ * ชุดทดสอบ golden และตัวเลขที่ ship ไปแล้วเปลี่ยนโดยไม่ได้ตั้งใจ
+ */
 async function main() {
-  const only = process.argv[2] ?? null
+  const [onlyArg, ...symbolArgs] = process.argv.slice(2)
+  const only = onlyArg ?? null
   if (only !== null && !GROUPS.includes(only)) {
     throw new Error(`ไม่รู้จักชุด "${only}" — เลือกได้: ${GROUPS.join(", ")}`)
+  }
+  const picked = symbolArgs.map((s) => s.toUpperCase())
+  const unknown = picked.filter((s) => !SYMBOLS.includes(s))
+  if (unknown.length > 0) {
+    throw new Error(`ไม่มีสัญลักษณ์ ${unknown.join(", ")} ในรายการที่ freeze ได้`)
   }
   const wants = (group) => only === null || only === group
 
@@ -188,16 +225,22 @@ async function main() {
   const lastClosedMonth = RANGE.end
   const summary = []
 
-  for (const symbol of wants("market") ? SYMBOLS : []) {
+  const marketSymbols = wants("market") ? (picked.length > 0 ? picked : SYMBOLS) : []
+  for (const symbol of marketSymbols) {
     let rows
     let source
-    try {
-      rows = await fetchStooq(symbol)
-      source = "stooq"
-    } catch (stooqError) {
-      console.warn(`  stooq ล้มเหลวสำหรับ ${symbol}: ${stooqError.message} — ลอง yahoo`)
+    if (!isUsListed(symbol)) {
       rows = await fetchYahoo(symbol)
       source = "yahoo"
+    } else {
+      try {
+        rows = await fetchStooq(symbol)
+        source = "stooq"
+      } catch (stooqError) {
+        console.warn(`  stooq ล้มเหลวสำหรับ ${symbol}: ${stooqError.message} — ลอง yahoo`)
+        rows = await fetchYahoo(symbol)
+        source = "yahoo"
+      }
     }
 
     const returns = toMonthlyReturns(rows, lastClosedMonth)
@@ -207,7 +250,7 @@ async function main() {
       frozenFrom: `${RANGE.start}..${RANGE.end}`,
       returns,
     }
-    await writeFile(path.join(OUT_DIR, `${symbol.toLowerCase()}.json`), JSON.stringify(payload), "utf8")
+    await writeFile(path.join(OUT_DIR, `${fixtureName(symbol)}.json`), JSON.stringify(payload), "utf8")
     summary.push({ symbol, source, count: returns.length, first: returns[0]?.month, last: returns.at(-1)?.month })
   }
 

@@ -192,9 +192,11 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
       }
 
       const askedStart = `${target.startYear}-01`
+      // ข้อความนี้ขึ้นเฉพาะตอน**ต้นช่วง**ขยับ จึงต้องบอกชื่อตัวที่จำกัดต้นช่วง
+      // ไม่ใช่ตัวแรกใน limitedBy ซึ่งอาจเป็นตัวที่จำกัดท้ายช่วงแทน
       const clampedBy =
-        shared.range.start > askedStart && shared.limitedBy.length > 0
-          ? { symbol: shared.limitedBy[0] }
+        shared.range.start > askedStart && shared.limitedStartBy.length > 0
+          ? { symbol: shared.limitedStartBy[0] }
           : undefined
 
       const portfolioSeries = results.map((r) => r.returns)

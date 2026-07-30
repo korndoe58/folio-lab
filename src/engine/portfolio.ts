@@ -195,7 +195,15 @@ function shouldRebalance(
   return weights.some((weight, i) => Math.abs(weight - targetWeights[i]) > band)
 }
 
-export type SharedRange = { range: MonthRange; limitedBy: string[] }
+export type SharedRange = {
+  range: MonthRange
+  /** สัญลักษณ์ที่เป็นตัวจำกัดช่วง ไม่ว่าจะด้านต้นหรือด้านท้าย */
+  limitedBy: string[]
+  /** สัญลักษณ์ที่ข้อมูลเริ่มช้าที่สุด — ตัวที่ทำให้ต้นช่วงขยับ */
+  limitedStartBy: string[]
+  /** สัญลักษณ์ที่ข้อมูลจบเร็วที่สุด — ตัวที่ทำให้ท้ายช่วงขยับ */
+  limitedEndBy: string[]
+}
 
 /**
  * ช่วงที่ทุกสินทรัพย์มีข้อมูลร่วมกัน พร้อมบอกว่าใครเป็นตัวจำกัด (BR-ENG-14)
@@ -226,7 +234,17 @@ export function commonRange(
     .filter((s) => s.first === start || s.last === end)
     .map((s) => s.symbol)
 
-  return { range: { start, end }, limitedBy }
+  /**
+   * แยกตัวที่จำกัด**ต้นช่วง**ออกจากตัวที่จำกัด**ท้ายช่วง**
+   *
+   * `limitedBy` รวมทั้งสองแบบไว้ด้วยกัน ผู้เรียกที่หยิบตัวแรกไปแสดงจึงอาจได้ชื่อผิด —
+   * เช่น พอร์ต VTI (ข้อมูลตั้งแต่ 2012) กับ BTC-USD (ตั้งแต่ 2014) ต้นช่วงถูกจำกัดโดย
+   * BTC-USD แต่ VTI ก็ติดอยู่ในรายการเพราะเป็นตัวที่จบท้ายช่วงพอดี
+   */
+  const limitedStartBy = spans.filter((s) => s.first === start).map((s) => s.symbol)
+  const limitedEndBy = spans.filter((s) => s.last === end).map((s) => s.symbol)
+
+  return { range: { start, end }, limitedBy, limitedStartBy, limitedEndBy }
 }
 
 function monthsInRange(range: MonthRange): YearMonth[] {
