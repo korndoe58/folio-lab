@@ -12,8 +12,13 @@ import {
 } from "recharts"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { seriesKey, type GrowthData } from "@/lib/backtest/chart-data"
-import { BENCHMARK_DASH, lineDash, lineWidth } from "@/components/backtest/series-style"
+import { contributionKey, seriesKey, type GrowthData } from "@/lib/backtest/chart-data"
+import {
+  BENCHMARK_DASH,
+  CONTRIBUTION_DASH,
+  lineDash,
+  lineWidth,
+} from "@/components/backtest/series-style"
 import { formatMoney } from "@/lib/backtest/format"
 import type { Currency } from "@/data/currency"
 import { useLanguage } from "@/i18n"
@@ -51,6 +56,11 @@ export function GrowthChart({
 
   const values = data.points.flatMap((p) =>
     [...p.values, p.benchmark].filter((v): v is number => v !== null),
+  )
+
+  /** พอร์ตที่มีเส้นเงินที่ใส่สะสม — พอร์ตที่ไม่มีเงินเข้าออกได้ null ทุกจุด */
+  const withContributions = portfolioNames.map((_, index) =>
+    data.points.some((point) => point.contributions[index] !== null),
   )
   const domain = logScale
     ? ([Math.min(...values) * 0.9, Math.max(...values) * 1.1] as const)
@@ -129,6 +139,27 @@ export function GrowthChart({
                   connectNulls
                 />
               ))}
+              {/* เส้นเงินที่ใส่สะสม โผล่เฉพาะพอร์ตที่ตั้งเงินเข้าออกไว้จริง (AC-CMP-31) */}
+              {portfolioNames.map((name, index) =>
+                withContributions[index] ? (
+                  <Line
+                    key={`c${index}`}
+                    type="monotone"
+                    dataKey={contributionKey(index)}
+                    name={
+                      portfolioNames.length === 1
+                        ? t("chart.contributed")
+                        : t("chart.contributedOf", { name })
+                    }
+                    stroke="var(--muted-foreground)"
+                    strokeWidth={1.5}
+                    strokeDasharray={CONTRIBUTION_DASH}
+                    dot={false}
+                    isAnimationActive={false}
+                    connectNulls
+                  />
+                ) : null,
+              )}
               <Line
                 type="monotone"
                 dataKey="benchmark"
@@ -166,6 +197,16 @@ export function GrowthChart({
                       {name}
                     </th>
                   ))}
+                  {/* คอลัมน์เงินที่ใส่สะสม โผล่เฉพาะพอร์ตที่มีเงินเข้าออก (AC-CMP-31) */}
+                  {portfolioNames.map((name, index) =>
+                    withContributions[index] ? (
+                      <th key={`c${index}`} scope="col" className="py-1 pr-3 text-right font-medium">
+                        {portfolioNames.length === 1
+                          ? t("chart.contributed")
+                          : t("chart.contributedOf", { name })}
+                      </th>
+                    ) : null,
+                  )}
                   <th scope="col" className="py-1 text-right font-medium">
                     {t("summary.benchmarkColumn", { symbol: benchmarkSymbol })}
                   </th>
@@ -191,6 +232,21 @@ export function GrowthChart({
                         {formatMoney(value, currency)}
                       </td>
                     ))}
+                    {row.contributions.map((value, index) =>
+                      withContributions[index] ? (
+                        <td
+                          key={`c${index}`}
+                          className="py-1 pr-3 text-right tabular-nums text-muted-foreground"
+                          data-testid={
+                            portfolioNames.length === 1
+                              ? `contributed-${row.year}`
+                              : `contributed${index}-${row.year}`
+                          }
+                        >
+                          {formatMoney(value, currency)}
+                        </td>
+                      ) : null,
+                    )}
                     <td className="py-1 text-right tabular-nums text-muted-foreground">
                       {formatMoney(row.benchmark, currency)}
                     </td>

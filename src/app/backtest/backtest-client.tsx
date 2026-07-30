@@ -16,12 +16,18 @@ import {
   type FormIssues,
 } from "@/lib/backtest/validation"
 import { buildAnnualData, buildDrawdownData, buildGrowthData } from "@/lib/backtest/chart-data"
-import { assembleSummary } from "@/lib/backtest/summary"
-import { commonRange, portfolioReturns } from "@/engine"
+import { assembleSummary, type PortfolioOutcome } from "@/lib/backtest/summary"
+import {
+  buildFlows,
+  commonRange,
+  moneyWeightedReturn,
+  portfolioReturns,
+  type CashflowPlan,
+} from "@/engine"
 import cpiFixture from "@/data/fixtures/th-cpi.json"
 import rfFixture from "@/data/fixtures/rf.json"
 import { useLanguage } from "@/i18n"
-import type { BacktestConfig } from "@/types/backtest"
+import { DEFAULT_REBALANCE, type BacktestConfig, type CashflowSpec } from "@/types/backtest"
 import { parseYearMonth, type MonthRange } from "@/types/series"
 
 const provider = getBrowserProvider()
@@ -32,6 +38,25 @@ const LAST_CLOSED_YEAR = Number(LAST_CLOSED_MONTH.split("-")[0])
 const RISK_FREE = rfFixture.returns
 /** อัตราเงินเฟ้อไทยรายปีชุดที่ freeze ไว้ — ใช้ชุดนี้เสมอไม่ว่าเลือกดูผลเป็นสกุลใด (BR-INF-11) */
 const INFLATION_RATES = cpiFixture.rates
+
+/** แปลงค่าที่ผู้ใช้กรอก (เก็บเป็นข้อความ) เป็นแผนที่ชั้นคำนวณใช้ */
+function toCashflowPlan(spec: CashflowSpec | null): CashflowPlan | null {
+  if (!spec) return null
+  return {
+    direction: spec.direction,
+    amount: Number(spec.amount),
+    basis: spec.basis,
+    frequency: spec.frequency,
+    inflationAdjusted: spec.inflationAdjusted,
+    allocation: spec.allocation,
+  }
+}
+
+/** เงินที่ใส่สะสมของแต่ละเดือน รวมเงินตั้งต้น — จุดแรกคือก่อนเดือนแรก (AC-CMP-31) */
+function cumulative(initialAmount: number, deposits: number[]): number[] {
+  let running = initialAmount
+  return [initialAmount, ...deposits.map((amount) => (running += amount))]
+}
 
 
 export function BacktestClient() {
@@ -141,8 +166,14 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
       const inRange = (series: { month: string; value: number }[]) =>
         series.filter((item) => item.month >= shared.range.start && item.month <= shared.range.end)
 
-      const results = holdings.map((assets) =>
-        portfolioReturns(assets.map((a) => ({ ...a, returns: inRange(a.returns) }))),
+      const results = holdings.map((assets, i) =>
+        portfolioReturns(assets.map((a) => ({ ...a, returns: inRange(a.returns) })), {
+          rebalance: target.portfolios[i].rebalance,
+          bandPoints: Number(target.portfolios[i].bandPoints),
+          initialAmount: target.amount,
+          cashflow: toCashflowPlan(target.portfolios[i].cashflow),
+          inflationRates: INFLATION_RATES,
+        }),
       )
 
       if (results.some((r) => !r.usedRange || r.returns.length === 0)) {
@@ -164,13 +195,40 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
       const benchmarkReturns = inRange(loaded.benchmark)
       const inflation = { rates: INFLATION_RATES, enabled: target.inflationAdjusted }
 
+      const outcomes: PortfolioOutcome[] = results.map((result, i) => {
+        const spec = target.portfolios[i]
+        const hasCashflow = spec.cashflow !== null
+        const endValue = result.values.at(-1)?.value ?? target.amount
+        return {
+          returns: result.returns,
+          endValue,
+          contributed: result.deposits.reduce((sum, v) => sum + v, 0),
+          withdrawn: result.withdrawals.reduce((sum, v) => sum + v, 0),
+          hasCashflow,
+          moneyWeighted: hasCashflow
+            ? moneyWeightedReturn(
+                buildFlows({
+                  initialAmount: target.amount,
+                  deposits: result.deposits,
+                  withdrawals: result.withdrawals,
+                  finalValue: endValue,
+                }),
+              )
+            : null,
+          rebalanceCount: result.rebalanceCount,
+          customRebalance: spec.rebalance !== DEFAULT_REBALANCE,
+        }
+      })
+
       const summary = assembleSummary({
-        portfolios: portfolioSeries,
+        outcomes,
         benchmark: benchmarkReturns,
         riskFree: inRange(RISK_FREE),
         amount: target.amount,
         inflation,
       })
+
+      const depletedAt = results.find((r) => r.depletedAt !== null)?.depletedAt ?? null
 
       setRun({
         kind: "ready",
@@ -181,7 +239,16 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
         converted: loaded.converted,
         inflationAdjusted: target.inflationAdjusted,
         portfolioNames: target.portfolios.map((p) => p.name),
-        growth: buildGrowthData(portfolioSeries, benchmarkReturns, target.amount),
+        depletedAt,
+        allocationTarget: target.portfolios.some(
+          (p) => p.cashflow?.direction === "deposit" && p.cashflow.allocation === "target",
+        ),
+        growth: buildGrowthData(portfolioSeries, benchmarkReturns, target.amount, {
+          values: results.map((r) => r.values),
+          contributions: results.map((r, i) =>
+            target.portfolios[i].cashflow ? cumulative(target.amount, r.deposits) : null,
+          ),
+        }),
         annual: buildAnnualData(portfolioSeries, benchmarkReturns, inflation),
         drawdown: buildDrawdownData(portfolioSeries, benchmarkReturns),
         range: shared.range,

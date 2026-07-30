@@ -14,6 +14,9 @@ const BAR_OPACITY = [1, 0.55, 0.18]
 /** ตัวเทียบใช้ลายเดิมที่ ship มาตั้งแต่ US-08 จึงไม่เปลี่ยนหน้าตาของพอร์ตเดียว */
 export const BENCHMARK_DASH = "5 4"
 
+/** เงินที่ใส่สะสม — จุดถี่ ต่างจากทุกลายข้างบน อ่านออกเมื่อพิมพ์ขาวดำ (BR-CMP-28) */
+export const CONTRIBUTION_DASH = "1 3"
+
 export function lineDash(index: number): string | undefined {
   return LINE_DASH[index % LINE_DASH.length]
 }

@@ -1,5 +1,5 @@
 import type { BacktestConfig } from "@/types/backtest"
-import { encodeConfig } from "./url"
+import { encodeConfig, makePortfolio } from "./url"
 
 export type DemoPortfolio = {
   /** คีย์ของชื่อและคำอธิบายใน i18n */
@@ -33,33 +33,34 @@ export const DEMO_PORTFOLIOS: DemoPortfolio[] = [
     config: {
       ...SHARED,
       portfolios: [
-        {
-          name: "",
+        makePortfolio({
           assets: [
             { symbol: "VTI", weight: "60" },
             { symbol: "BND", weight: "40" },
           ],
-        },
+        }),
       ],
     },
   },
   {
     key: "allUsStocks",
-    config: { ...SHARED, portfolios: [{ name: "", assets: [{ symbol: "VTI", weight: "100" }] }] },
+    config: {
+      ...SHARED,
+      portfolios: [makePortfolio({ assets: [{ symbol: "VTI", weight: "100" }] })],
+    },
   },
   {
     key: "global",
     config: {
       ...SHARED,
       portfolios: [
-        {
-          name: "",
+        makePortfolio({
           assets: [
             { symbol: "VTI", weight: "60" },
             { symbol: "VXUS", weight: "25" },
             { symbol: "BND", weight: "15" },
           ],
-        },
+        }),
       ],
     },
   },
@@ -74,14 +75,13 @@ export const DEMO_PORTFOLIOS: DemoPortfolio[] = [
       baseCurrency: "THB",
       inflationAdjusted: false,
       portfolios: [
-        {
-          name: "",
+        makePortfolio({
           assets: [
             { symbol: "PTT.BK", weight: "30" },
             { symbol: "CPALL.BK", weight: "30" },
             { symbol: "VTI", weight: "40" },
           ],
-        },
+        }),
       ],
     },
   },

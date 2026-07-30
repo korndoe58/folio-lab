@@ -48,7 +48,37 @@
     "removePortfolio": "Remove {name}",
     "removePortfolioShort": "Remove",
     "removePortfolioDisabled": "At least one portfolio is required",
-    "sharedSettings": "Settings shared by every portfolio"
+    "sharedSettings": "Settings shared by every portfolio",
+    "rebalance": "Rebalancing",
+    "rebalanceNone": "Never",
+    "rebalanceMonthly": "Monthly",
+    "rebalanceQuarterly": "Quarterly",
+    "rebalanceAnnual": "Annually",
+    "rebalanceBands": "When drift exceeds a threshold",
+    "rebalanceNoFees": "Rebalancing here carries no trading fees or taxes, so real results fall short of what you see.",
+    "bandPoints": "Drift over (percentage points)",
+    "bandPointsHint": "For example, a 60% target with a {points}-point threshold rebalances when the actual weight falls below {low}% or rises above {high}%.",
+    "cashflowEnable": "Add or withdraw money along the way",
+    "cashflowLegend": "Cashflows",
+    "cashflowDirection": "Direction",
+    "cashflowDeposit": "Add money",
+    "cashflowWithdraw": "Withdraw money",
+    "cashflowAmount": "Amount per period",
+    "cashflowBasis": "Amount type",
+    "cashflowFixed": "A fixed amount",
+    "cashflowPercent": "A percentage of the starting amount per year",
+    "cashflowFrequency": "How often",
+    "cashflowMonthly": "Every month",
+    "cashflowQuarterly": "Every quarter",
+    "cashflowAnnual": "Every year",
+    "cashflowInflation": "Raise the amount with Thai inflation each year",
+    "cashflowAllocation": "How added money is spread",
+    "cashflowAllocationProrata": "By what you already hold",
+    "cashflowAllocationTarget": "By target weights",
+    "cashflowAllocationHint": "By what you hold: weights stay put, so the portfolio return still compares directly with a lump-sum portfolio. By target weights: this pulls weights back to target as it goes, so the portfolio return changes and no longer compares directly across portfolios.",
+    "cashflowPlannedTotal": "About {total} in total over {periods} periods",
+    "cashflowPlannedTotalWithdraw": "About {total} withdrawn in total over {periods} periods",
+    "cashflowPlannedUnknown": "Set an amount per period to see the total here."
   },
   "symbols": {
     "vti": "Total US stock market",
@@ -83,13 +113,19 @@
     "linkInvalid": "This link has incomplete or invalid settings. Please set up the portfolio again",
     "rangeTooShort": "The selected period is too short. At least 2 months of data are needed, so try widening it",
     "symbolDuplicate": "This symbol is already in the portfolio",
-    "portfolioNameDuplicate": "Two portfolios share a name. Give them different names so the results are easier to read"
+    "portfolioNameDuplicate": "Two portfolios share a name. Give them different names so the results are easier to read",
+    "cashflowAmount": "The amount added or withdrawn per period must be a number greater than 0.",
+    "rebalanceBand": "The drift threshold must be between 1 and 50 percentage points.",
+    "withdrawPercent": "The withdrawal rate per period must be between 0 and 100 percent."
   },
   "notice": {
     "rangeClamped": "The period was adjusted to {start} to {end} based on the data available for {symbol}",
     "converted": "All figures are shown in {currency}, converted at each month's exchange rate",
     "inflationOn": "Figures marked after inflation show buying power compared with the start of the period, using Thai inflation",
-    "inflationGap": "Inflation for {years} has not been published yet, so those years are not adjusted. Every other year is"
+    "inflationGap": "Inflation for {years} has not been published yet, so those years are not adjusted. Every other year is",
+    "twoReturns": "The table shows two kinds of return: the portfolio return measures the assets alone and ignores when you added money, while the return on your money counts the timing of every deposit and withdrawal.",
+    "allocationTarget": "A portfolio that spreads added money by target weights pulls its weights back to target along the way, so its portfolio return no longer compares directly with the others.",
+    "portfolioDepleted": "This portfolio ran out in {month}, so its value is zero from then on."
   },
   "error": {
     "dataLoad": "Could not load price data. Please try again",
@@ -146,6 +182,22 @@
     "sortino": {
       "label": "Sortino",
       "hint": "Like Sharpe, but it only penalises downward swings. Useful if losses worry you more than bumpiness"
+    },
+    "totalContributed": {
+      "label": "Total contributed",
+      "hint": "The starting amount plus every deposit, which is the money that actually left your pocket."
+    },
+    "totalWithdrawn": {
+      "label": "Total withdrawn",
+      "hint": "Everything actually withdrawn across all periods. A portfolio set to withdraw shows this instead of total contributed."
+    },
+    "moneyWeightedReturn": {
+      "label": "Return on your money",
+      "hint": "How fast the money you put in grew per year, counting when you added or withdrew it. The portfolio return ignores that timing."
+    },
+    "rebalanceCount": {
+      "label": "Times rebalanced",
+      "hint": "How many times you would have had to pull the weights back over the period. This figure ignores fees and taxes."
     }
   },
   "summary": {
@@ -160,7 +212,8 @@
     "explain": "Show the explanation for {metric}",
     "noDownside": "Cannot be calculated because there are no losing months",
     "ready": "Backtest results are ready",
-    "realMark": "after inflation"
+    "realMark": "after inflation",
+    "noMoneyWeighted": "No rate fits this pattern of money in and out."
   },
   "chart": {
     "growthHeading": "Portfolio growth",
@@ -177,7 +230,9 @@
     "monthColumn": "As of",
     "partialYear": "{count} months of data",
     "chartAlt": "Everything in this chart is available in the accompanying table",
-    "yearEndCaption": "Portfolio and market value at each year end"
+    "yearEndCaption": "Portfolio and market value at each year end",
+    "contributed": "Money added so far",
+    "contributedOf": "Money added so far — {name}"
   },
   "drawdown": {
     "heading": "Drawdowns and recovery",

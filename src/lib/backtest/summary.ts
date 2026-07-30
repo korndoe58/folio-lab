@@ -17,7 +17,7 @@ import {
 import type { MonthlyReturn } from "@/types/series"
 
 /** ชนิดของค่าในตาราง ใช้เลือกวิธีจัดรูปแบบที่หน้าจอ */
-export type MetricFormat = "money" | "percent" | "ratio"
+export type MetricFormat = "money" | "percent" | "ratio" | "count"
 
 /** ทิศทางที่ถือว่า "ดีกว่า" — ความผันผวนและช่วงขาดทุนยิ่งใกล้ศูนย์ยิ่งดี */
 type Direction = "higher-better" | "closer-to-zero-better"
@@ -65,6 +65,7 @@ export type Summary = {
 const DIRECTION: Record<string, Direction> = {
   endBalance: "higher-better",
   cagr: "higher-better",
+  moneyWeightedReturn: "higher-better",
   stdev: "closer-to-zero-better",
   bestYear: "higher-better",
   worstYear: "higher-better",
@@ -79,30 +80,50 @@ const DIRECTION: Record<string, Direction> = {
  * ทุกค่ามาจากชั้นคำนวณ ฟังก์ชันนี้ทำได้แค่จัดเรียงและเทียบทิศ — ไม่มีการคำนวณใหม่
  * ผลตอบแทนของตัวเทียบต้องถูกตัดให้เป็นช่วงเดียวกับพอร์ตมาแล้ว มิฉะนั้นจะเป็นการเทียบคนละช่วง
  */
+/** ผลจากชั้นคำนวณของหนึ่งพอร์ต ที่แถวเงินเข้าออกและการปรับสมดุลต้องใช้ */
+export type PortfolioOutcome = {
+  returns: MonthlyReturn[]
+  /** มูลค่าสุดท้ายจากเส้นมูลค่าที่รวมเงินเข้าออกแล้ว (BR-CMP-41) */
+  endValue: number
+  contributed: number
+  withdrawn: number
+  hasCashflow: boolean
+  moneyWeighted: number | null
+  rebalanceCount: number
+  /** true เมื่อพอร์ตนี้ตั้งวิธีปรับสมดุลไว้ไม่ตรงกับค่าปริยาย */
+  customRebalance: boolean
+}
+
 export function assembleSummary(input: {
-  /** ผลตอบแทนของแต่ละพอร์ต ตัดให้เป็นช่วงเวลาร่วมเดียวกันมาแล้ว (BR-CMP-04) */
-  portfolios: MonthlyReturn[][]
+  /** ผลของแต่ละพอร์ต ตัดให้เป็นช่วงเวลาร่วมเดียวกันมาแล้ว (BR-CMP-04) */
+  outcomes: PortfolioOutcome[]
   benchmark: MonthlyReturn[]
   riskFree: MonthlyReturn[]
   amount: number
   inflation?: InflationInput
 }): Summary {
-  const { portfolios, benchmark, riskFree, amount, inflation } = input
+  const { outcomes, benchmark, riskFree, amount, inflation } = input
+  const portfolios = outcomes.map((o) => o.returns)
   const adjusting = inflation?.enabled === true
   const rates = inflation?.rates ?? []
 
   /**
    * ค่าที่หักเงินเฟ้อได้ของหนึ่งชุดผลตอบแทน (BR-INF-04)
    * ตัวคูณสะสมคิดจากปีที่ชุดนั้นแตะเอง เพราะพอร์ตกับตัวเทียบอาจมีเดือนไม่เท่ากัน
+   *
+   * `endValue` แยกจาก `series` เพราะมูลค่าสุดท้ายมาจากเส้นมูลค่าที่รวมเงินเข้าออกแล้ว (BR-CMP-41)
+   * ส่วนผลตอบแทนต่อปีแบบทบต้นยังคิดจากชุดผลตอบแทนล้วน ๆ ซึ่งไม่ขึ้นกับเงินเข้าออก (BR-CMP-40)
    */
-  const deflate = (series: MonthlyReturn[]) => {
-    const nominalEnd = endBalance(series, amount)
+  const deflate = (series: MonthlyReturn[], endValue = endBalance(series, amount)) => {
     if (!adjusting) {
-      return { endBalance: nominalEnd, cagr: cagr(series), missingYears: [] as number[] }
+      return { endBalance: endValue, cagr: cagr(series), missingYears: [] as number[] }
     }
     const { factor, missingYears } = cumulativeInflation(coveredYears(series), rates)
-    const realEnd = realEndBalance(nominalEnd, factor)
-    return { endBalance: realEnd, cagr: realCagr(realEnd, amount, series.length), missingYears }
+    return {
+      endBalance: realEndBalance(endValue, factor),
+      cagr: realCagr(realEndBalance(endBalance(series, amount), factor), amount, series.length),
+      missingYears,
+    }
   }
 
   const yearly = (series: MonthlyReturn[]) => {
@@ -110,7 +131,7 @@ export function assembleSummary(input: {
     return bestWorstFullYears(adjusting ? realAnnualReturns(annual, rates) : annual)
   }
 
-  const totals = portfolios.map(deflate)
+  const totals = outcomes.map((outcome) => deflate(outcome.returns, outcome.endValue))
   const annual = portfolios.map(yearly)
   const drawdowns = portfolios.map(maxDrawdown)
   const sortinos = portfolios.map((series) => sortino(series, riskFree))
@@ -121,8 +142,25 @@ export function assembleSummary(input: {
 
   // ค่าความเสี่ยงทุกตัวยังเป็นตัวเงินปกติ เพราะนิยามบนผลตอบแทนรายเดือน
   // ซึ่งดัชนีเงินเฟ้อรายปีไม่มีความละเอียดพอจะปรับได้ (BR-INF-08)
+  // สามแถวนี้โผล่เฉพาะเมื่อมีพอร์ตที่ใช้ความสามารถนั้นจริง ไม่ใช่โผล่ตลอด (BR-CMP-46)
+  const anyCashflow = outcomes.some((o) => o.hasCashflow)
+  const anyCustomRebalance = outcomes.some((o) => o.customRebalance)
+  const withdrawing = outcomes.some((o) => o.withdrawn > 0)
+
   const rows: SummaryRow[] = [
     row("startAmount", "money", portfolios.map(() => ({ value: amount })), amount),
+    ...(anyCashflow
+      ? [
+          row(
+            withdrawing ? "totalWithdrawn" : "totalContributed",
+            "money",
+            outcomes.map((o) => ({
+              value: o.hasCashflow ? (withdrawing ? o.withdrawn : amount + o.contributed) : null,
+            })),
+            null,
+          ),
+        ]
+      : []),
     adjusted(
       row(
         "endBalance",
@@ -134,6 +172,21 @@ export function assembleSummary(input: {
     adjusted(
       row("cagr", "percent", totals.map((t) => ({ value: t.cagr })), benchmarkTotals.cagr),
     ),
+    // ผลตอบแทนของ "เงินคุณ" อยู่ติดกับผลตอบแทนของ "พอร์ต" เพื่อให้เห็นความต่างทันที (BR-CMP-47)
+    ...(anyCashflow
+      ? [
+          row(
+            "moneyWeightedReturn",
+            "percent",
+            outcomes.map((o) => ({
+              value: o.hasCashflow ? o.moneyWeighted : null,
+              unavailableReason:
+                o.hasCashflow && o.moneyWeighted === null ? "summary.noMoneyWeighted" : undefined,
+            })),
+            null,
+          ),
+        ]
+      : []),
     row(
       "stdev",
       "percent",
@@ -179,6 +232,16 @@ export function assembleSummary(input: {
       })),
       sortino(benchmark, riskFree),
     ),
+    ...(anyCustomRebalance
+      ? [
+          row(
+            "rebalanceCount",
+            "count",
+            outcomes.map((o) => ({ value: o.rebalanceCount })),
+            null,
+          ),
+        ]
+      : []),
   ]
 
   const inflationGapYears = [

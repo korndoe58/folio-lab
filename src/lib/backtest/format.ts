@@ -47,6 +47,12 @@ export function formatDuration(
   return rest === 0 ? labels.year(years) : `${labels.year(years)} ${labels.month(rest)}`
 }
 
+/** จำนวนครั้ง — จำนวนเต็มเสมอ ไม่มีทศนิยมและไม่มีหน่วย */
+export function formatCount(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) return NO_VALUE
+  return Math.round(value).toLocaleString("en-US")
+}
+
 /** อัตราส่วนไร้หน่วยทศนิยม 2 ตำแหน่ง */
 export function formatRatio(value: number | null): string {
   if (value === null || !Number.isFinite(value)) return NO_VALUE

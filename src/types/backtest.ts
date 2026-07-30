@@ -1,4 +1,11 @@
 import type { Currency } from "@/data/currency"
+import type {
+  CashflowAllocation,
+  CashflowBasis,
+  CashflowDirection,
+  CashflowFrequency,
+  RebalanceMode,
+} from "@/engine"
 
 export type PortfolioRow = {
   symbol: string
@@ -13,6 +20,22 @@ export type PortfolioRow = {
 export type PortfolioSpec = {
   name: string
   assets: PortfolioRow[]
+  /** วิธีดึงน้ำหนักกลับสู่เป้าหมาย — ค่าปริยายรายปี เพื่อให้ลิงก์เดิมได้ค่าเดิม (BR-CMP-54) */
+  rebalance: RebalanceMode
+  /** เกณฑ์เบี่ยงเบนเป็นจุดเปอร์เซ็นต์ ใช้เมื่อเลือกแบบ bands — เก็บเป็นข้อความเพราะผู้ใช้กำลังพิมพ์ */
+  bandPoints: string
+  /** null = ไม่มีเงินเข้าออก ซึ่งเป็นค่าปริยาย (BR-CMP-33) */
+  cashflow: CashflowSpec | null
+}
+
+/** เงินเข้าออกที่ผู้ใช้ตั้งไว้ — จำนวนเก็บเป็นข้อความเพราะผู้ใช้กำลังพิมพ์ */
+export type CashflowSpec = {
+  direction: CashflowDirection
+  amount: string
+  basis: CashflowBasis
+  frequency: CashflowFrequency
+  inflationAdjusted: boolean
+  allocation: CashflowAllocation
 }
 
 export type BacktestConfig = {
@@ -35,6 +58,34 @@ export const MAX_ASSETS = 10
 export const MIN_PORTFOLIOS = 1
 export const MAX_PORTFOLIOS = 3
 export const MAX_PORTFOLIO_NAME = 20
+/**
+ * ค่าปริยายของการปรับสมดุลต้องเป็นรายปีต่อไป เพราะทุกผลลัพธ์ที่ ship แล้วและทุกลิงก์
+ * ที่แชร์ไปแล้วคำนวณด้วยค่านี้ (BR-CMP-54)
+ */
+export const DEFAULT_REBALANCE: RebalanceMode = "annual"
+export const REBALANCE_OPTIONS: RebalanceMode[] = [
+  "none",
+  "monthly",
+  "quarterly",
+  "annual",
+  "bands",
+]
+export const MIN_BAND_POINTS = 1
+export const MAX_BAND_POINTS = 50
+export const DEFAULT_BAND_POINTS = "5"
+export const CASHFLOW_FREQUENCY_OPTIONS: CashflowFrequency[] = ["monthly", "quarterly", "annual"]
+
+/** เงินเข้าออกชุดเริ่มต้นเมื่อผู้ใช้เพิ่งเปิดตัวเลือก */
+export function defaultCashflow(): CashflowSpec {
+  return {
+    direction: "deposit",
+    amount: "",
+    basis: "fixed",
+    frequency: "monthly",
+    inflationAdjusted: false,
+    allocation: "prorata",
+  }
+}
 export const MIN_AMOUNT = 1
 export const MAX_AMOUNT = 1_000_000_000
 export const DEFAULT_AMOUNT = 10_000

@@ -7,10 +7,10 @@ import uponly from "@/data/fixtures/uponly.json"
 import vnq from "@/data/fixtures/vnq.json"
 import vti from "@/data/fixtures/vti.json"
 import vxus from "@/data/fixtures/vxus.json"
-import { portfolioReturns } from "@/engine"
+import { endBalance, portfolioReturns } from "@/engine"
 import type { MonthlyReturn } from "@/types/series"
 import { formatMoney, formatPercent, formatRatio, NO_VALUE } from "./format"
-import { assembleSummary, type SummaryRow } from "./summary"
+import { assembleSummary, type PortfolioOutcome, type SummaryRow } from "./summary"
 
 const REFERENCE = portfolioReturns([
   { symbol: "VTI", weight: 48, returns: vti.returns },
@@ -21,8 +21,20 @@ const REFERENCE = portfolioReturns([
 
 const BENCHMARK = portfolioReturns([{ symbol: "SPY", weight: 100, returns: spy.returns }]).returns
 
+/** ผลของพอร์ตที่ไม่มีเงินเข้าออกและใช้ค่าปริยาย — รูปแบบที่ทุกเทสต์เดิมสมมติไว้ */
+const plain = (returns: MonthlyReturn[], amount = 10_000): PortfolioOutcome => ({
+  returns,
+  endValue: endBalance(returns, amount),
+  contributed: 0,
+  withdrawn: 0,
+  hasCashflow: false,
+  moneyWeighted: null,
+  rebalanceCount: 0,
+  customRebalance: false,
+})
+
 const summary = assembleSummary({
-  portfolios: [REFERENCE],
+  outcomes: [plain(REFERENCE)],
   benchmark: BENCHMARK,
   riskFree: rf.returns as MonthlyReturn[],
   amount: 10_000,
@@ -110,7 +122,7 @@ describe("US-07 ค่าที่จะขึ้นบนตารางสร�
 describe("US-07 ค่าที่คำนวณไม่ได้", () => {
   const upOnly = portfolioReturns([{ symbol: "UPONLY", weight: 100, returns: uponly.returns }]).returns
   const noDownside = assembleSummary({
-    portfolios: [upOnly],
+    outcomes: [plain(upOnly)],
     benchmark: BENCHMARK,
     riskFree: rf.returns as MonthlyReturn[],
     amount: 10_000,
@@ -135,7 +147,7 @@ describe("US-07 ค่าที่คำนวณไม่ได้", () => {
 describe("US-16 ตารางสรุปหลายพอร์ต", () => {
   const allStocks = portfolioReturns([{ symbol: "VTI", weight: 100, returns: vti.returns }]).returns
   const compared = assembleSummary({
-    portfolios: [REFERENCE, allStocks],
+    outcomes: [plain(REFERENCE), plain(allStocks)],
     benchmark: BENCHMARK,
     riskFree: rf.returns as MonthlyReturn[],
     amount: 10_000,
@@ -172,7 +184,7 @@ describe("US-16 ตารางสรุปหลายพอร์ต", () => {
       { symbol: "UPONLY", weight: 100, returns: uponly.returns },
     ]).returns
     const mixed = assembleSummary({
-      portfolios: [REFERENCE, upOnly],
+      outcomes: [plain(REFERENCE), plain(upOnly)],
       benchmark: BENCHMARK,
       riskFree: rf.returns as MonthlyReturn[],
       amount: 10_000,
@@ -187,7 +199,7 @@ describe("US-16 ตารางสรุปหลายพอร์ต", () => {
 
   test("BR-CMP-26 ลำดับพอร์ตในทุกแถวตรงกับลำดับที่ส่งเข้าไป", () => {
     const reversed = assembleSummary({
-      portfolios: [allStocks, REFERENCE],
+      outcomes: [plain(allStocks), plain(REFERENCE)],
       benchmark: BENCHMARK,
       riskFree: rf.returns as MonthlyReturn[],
       amount: 10_000,
@@ -201,7 +213,7 @@ describe("US-16 ตารางสรุปหลายพอร์ต", () => {
 
 describe("US-15 ปรับเงินเฟ้อในตารางสรุป", () => {
   const real = assembleSummary({
-    portfolios: [REFERENCE],
+    outcomes: [plain(REFERENCE)],
     benchmark: BENCHMARK,
     riskFree: rf.returns as MonthlyReturn[],
     amount: 10_000,
@@ -274,7 +286,7 @@ describe("US-15 ปรับเงินเฟ้อในตารางสร�
 
   test("AC-INF-10 ปิดตัวเลือกแล้วได้ผลชุดเดิมทุกหลัก", () => {
     const off = assembleSummary({
-      portfolios: [REFERENCE],
+      outcomes: [plain(REFERENCE)],
       benchmark: BENCHMARK,
       riskFree: rf.returns as MonthlyReturn[],
       amount: 10_000,

@@ -32,6 +32,10 @@ export type RunState =
       inflationAdjusted: boolean
       /** ชื่อพอร์ตดิบตามที่ผู้ใช้ตั้ง เรียงตามลำดับพอร์ต — ว่างแปลว่าใช้ชื่อปริยาย */
       portfolioNames: string[]
+      /** เดือนที่พอร์ตใดพอร์ตหนึ่งถูกถอนจนหมด — null เมื่อไม่มี (BR-CMP-50) */
+      depletedAt: string | null
+      /** true เมื่อมีพอร์ตที่กระจายเงินที่ใส่เพิ่มตามน้ำหนักเป้าหมาย (BR-CMP-59b) */
+      allocationTarget: boolean
       clamped?: { symbol: string }
     }
   | { kind: "error"; messageKey: string; params?: Record<string, string>; retryable: boolean }
@@ -110,6 +114,26 @@ export function RunStatus({ state, onRetry }: { state: RunState; onRetry: () => 
       {state.inflationAdjusted ? (
         <p className="text-sm text-muted-foreground" role="status">
           {t("notice.inflationOn")}
+        </p>
+      ) : null}
+
+      {/* บอกความต่างของสองนิยามผลตอบแทน ไม่ปล่อยให้ผู้ใช้เดา (BR-CMP-47) */}
+      {state.summary.rows.some((row) => row.metric === "moneyWeightedReturn") ? (
+        <p className="text-sm text-muted-foreground" role="status">
+          {t("notice.twoReturns")}
+        </p>
+      ) : null}
+
+      {/* วิธีนี้ปรับน้ำหนักไปในตัว ผลตอบแทนของพอร์ตจึงเทียบข้ามกันไม่ได้ตรง ๆ (AC-CMP-45) */}
+      {state.allocationTarget ? (
+        <p className="text-sm text-muted-foreground" role="status">
+          {t("notice.allocationTarget")}
+        </p>
+      ) : null}
+
+      {state.depletedAt ? (
+        <p className="text-sm text-muted-foreground" role="status">
+          {t("notice.portfolioDepleted", { month: monthLabel(state.depletedAt) })}
         </p>
       ) : null}
 

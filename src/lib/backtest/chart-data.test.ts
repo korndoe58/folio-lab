@@ -28,7 +28,15 @@ describe("buildGrowthData (US-08)", () => {
 
   it("เริ่มที่จุดตั้งต้น 10,000 ทั้งสองเส้น และมีจุดครบทุกเดือน", () => {
     expect(data.points).toHaveLength(portfolio.length + 1)
-    expect(data.points[0]).toEqual({ month: null, values: [10_000], p0: 10_000, benchmark: 10_000 })
+    // พอร์ตที่ไม่มีเงินเข้าออก เส้นเงินที่ใส่สะสมต้องไม่มีค่า ไม่ใช่เส้นศูนย์ (AC-CMP-31)
+    expect(data.points[0]).toEqual({
+      month: null,
+      values: [10_000],
+      p0: 10_000,
+      contributions: [null],
+      c0: null,
+      benchmark: 10_000,
+    })
   })
 
   it("จุดสุดท้ายตรงกับมูลค่าสุดท้ายจากชั้นคำนวณ (BR-GRW-07)", () => {

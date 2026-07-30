@@ -24,14 +24,28 @@ export const seriesKey = (index: number) => `p${index}` as const
  * คีย์แบนที่ไลบรารีกราฟอ่าน — `values` คือชุดเดียวกันในรูปที่โค้ดอื่นใช้ได้โดยไม่เสียชนิด
  * มีทั้งสองรูปเพราะไลบรารีกราฟรับได้เฉพาะคีย์แบน แต่การอ่านด้วยดัชนีพอร์ตอ่านง่ายกว่ามาก
  */
-type FlatSeries = { [key: `p${number}`]: number | null }
+type FlatSeries = { [key: `p${number}`]: number | null } & {
+  [key: `c${number}`]: number | null
+}
 
 export type GrowthChartPoint = FlatSeries & {
   /** null = จุดตั้งต้นก่อนเดือนแรกของช่วง (BR-ENG-04) */
   month: YearMonth | null
   /** มูลค่าของแต่ละพอร์ต ณ เดือนนั้น เรียงตามลำดับพอร์ต */
   values: Array<number | null>
+  /** เงินที่ใส่สะสม ณ เดือนนั้น — null เมื่อพอร์ตนั้นไม่มีเงินเข้าออก (AC-CMP-31) */
+  contributions: Array<number | null>
   benchmark: number | null
+}
+
+/** คีย์ของเส้นเงินที่ใส่สะสมของพอร์ตลำดับนั้น */
+export const contributionKey = (index: number) => `c${index}` as const
+
+export type GrowthInput = {
+  /** เส้นมูลค่าที่ชั้นคำนวณเดินมาแล้ว รวมเงินเข้าออก (BR-CMP-39) */
+  values: Array<Array<{ month: YearMonth | null; value: number }>>
+  /** เงินที่ใส่สะสมของแต่ละพอร์ต — null เมื่อพอร์ตนั้นไม่มีเงินเข้าออก */
+  contributions: Array<number[] | null>
 }
 
 export type YearEndRow = {
@@ -40,6 +54,8 @@ export type YearEndRow = {
   month: YearMonth
   /** มูลค่า ณ สิ้นปีของแต่ละพอร์ต เรียงตามลำดับพอร์ต */
   values: Array<number | null>
+  /** เงินที่ใส่สะสม ณ สิ้นปีนั้น — null เมื่อพอร์ตนั้นไม่มีเงินเข้าออก (AC-CMP-31) */
+  contributions: Array<number | null>
   benchmark: number | null
 }
 
@@ -57,8 +73,11 @@ export function buildGrowthData(
   portfolios: MonthlyReturn[][],
   benchmark: MonthlyReturn[],
   amount: number,
+  input?: GrowthInput,
 ): GrowthData {
-  const growth = portfolios.map((series) => growthSeries(series, amount))
+  // ไม่ส่งเส้นมูลค่ามา = ไม่มีเงินเข้าออก จึงคิดจากผลตอบแทนล้วน ๆ ได้เหมือนเดิม
+  const growth = input?.values ?? portfolios.map((series) => growthSeries(series, amount))
+  const contributions = input?.contributions ?? portfolios.map(() => null)
   const benchmarkByMonth = new Map<YearMonth | null, number>(
     growthSeries(benchmark, amount).map((p) => [p.month, p.value]),
   )
@@ -67,13 +86,18 @@ export function buildGrowthData(
   const timeline = growth[0] ?? []
   const points: GrowthChartPoint[] = timeline.map((point, i) => {
     const values = growth.map((series) => series[i]?.value ?? null)
+    const contributed = contributions.map((line) => line?.[i] ?? null)
     const row: GrowthChartPoint = {
       month: point.month,
       values,
+      contributions: contributed,
       benchmark: benchmarkByMonth.get(point.month) ?? null,
     }
     values.forEach((value, p) => {
       row[seriesKey(p)] = value
+    })
+    contributed.forEach((value, p) => {
+      row[contributionKey(p)] = value
     })
     return row
   })
@@ -86,6 +110,7 @@ export function buildGrowthData(
       year,
       month: point.month,
       values: point.values,
+      contributions: point.contributions,
       benchmark: point.benchmark,
     }
     const last = yearEnd[yearEnd.length - 1]

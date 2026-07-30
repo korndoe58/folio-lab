@@ -2,7 +2,7 @@
 
 import { Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { formatMoney, formatPercent, formatRatio } from "@/lib/backtest/format"
+import { formatCount, formatMoney, formatPercent, formatRatio } from "@/lib/backtest/format"
 import type { Currency } from "@/data/currency"
 import type { Summary, SummaryRow } from "@/lib/backtest/summary"
 import { useLanguage } from "@/i18n"
@@ -34,6 +34,7 @@ export function SummaryTable({
   const show = (row: SummaryRow, value: number | null) => {
     if (row.format === "money") return formatMoney(value, currency)
     if (row.format === "percent") return formatPercent(value)
+    if (row.format === "count") return formatCount(value)
     return formatRatio(value)
   }
 

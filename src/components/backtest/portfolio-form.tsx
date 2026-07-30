@@ -17,16 +17,33 @@ import {
 import { emptyPortfolio, emptyRow } from "@/lib/backtest/url"
 import { resolvePortfolioNames } from "@/lib/backtest/portfolio-names"
 import {
+  CASHFLOW_FREQUENCY_OPTIONS,
   CURRENCY_OPTIONS,
+  DEFAULT_BAND_POINTS,
+  defaultCashflow,
   MAX_ASSETS,
   MAX_PORTFOLIOS,
   MAX_PORTFOLIO_NAME,
   MIN_ASSETS,
   MIN_PORTFOLIOS,
+  REBALANCE_OPTIONS,
   type BacktestConfig,
+  type CashflowSpec,
   type PortfolioRow,
   type PortfolioSpec,
 } from "@/types/backtest"
+import {
+  plannedTotal,
+  type CashflowAllocation,
+  type CashflowBasis,
+  type CashflowDirection,
+  type CashflowFrequency,
+  type RebalanceMode,
+} from "@/engine"
+import { formatMoney } from "@/lib/backtest/format"
+import cpiFixture from "@/data/fixtures/th-cpi.json"
+import type { Currency } from "@/data/currency"
+import { toYearMonth, type MonthlyReturn } from "@/types/series"
 import { useLanguage } from "@/i18n"
 
 const MESSAGE_KEY: Record<string, string> = {
@@ -39,8 +56,32 @@ const MESSAGE_KEY: Record<string, string> = {
   "V-007": "validation.weightRange",
   "V-008": "validation.linkInvalid",
   "V-010": "validation.symbolDuplicate",
+  "V-011": "validation.cashflowAmount",
+  "V-012": "validation.rebalanceBand",
   "V-013": "validation.portfolioNameDuplicate",
+  "V-014": "validation.withdrawPercent",
 }
+
+/** ป้ายของแต่ละวิธีปรับสมดุล เขียนไว้ที่เดียวเพื่อให้ตัวตรวจชนิดข้อมูลบังคับว่าครบทั้ง 5 แบบ */
+const REBALANCE_LABEL: Record<RebalanceMode, string> = {
+  none: "form.rebalanceNone",
+  monthly: "form.rebalanceMonthly",
+  quarterly: "form.rebalanceQuarterly",
+  annual: "form.rebalanceAnnual",
+  bands: "form.rebalanceBands",
+}
+
+const CASHFLOW_FREQUENCY_LABEL: Record<CashflowFrequency, string> = {
+  monthly: "form.cashflowMonthly",
+  quarterly: "form.cashflowQuarterly",
+  annual: "form.cashflowAnnual",
+}
+
+/** น้ำหนักเป้าหมายที่ยกเป็นตัวอย่างในคำอธิบายเกณฑ์การเบี่ยงเบน (BR-CMP-56) */
+const BAND_EXAMPLE_WEIGHT = 60
+
+/** ดัชนีเงินเฟ้อไทยชุดเดียวกับที่ชั้นคำนวณใช้ — ยอดรวมที่แสดงจึงตรงกับที่จะได้จริง */
+const INFLATION_RATES = cpiFixture.rates
 
 export function issueMessage(
   issue: ValidationIssue | null,
@@ -111,6 +152,12 @@ export function PortfolioForm({
     onChange({ ...config, portfolios: config.portfolios.filter((_, i) => i !== index) })
 
   const formMessage = issueMessage(issues.form, t)
+
+  /**
+   * เดือนของช่วงที่ผู้ใช้ขอ ใช้บอกยอดรวมที่จะใส่ก่อนกดรัน (BR-CMP-51)
+   * เป็นค่าประมาณโดยตั้งใจ เพราะช่วงจริงอาจสั้นกว่านี้เมื่อสินทรัพย์บางตัวมีข้อมูลไม่ครบ
+   */
+  const askedMonths = monthsInRange(config.startYear, config.endYear)
 
   return (
     <form
@@ -275,6 +322,27 @@ export function PortfolioForm({
               </span>
             </div>
 
+            <RebalanceControls
+              pIndex={pIndex}
+              portfolio={portfolio}
+              invalid={portfolioIssues.portfolio?.code === "V-012"}
+              errorId={portfolioMessage ? errorId : undefined}
+              onChange={(patch) => updatePortfolio(pIndex, patch)}
+            />
+
+            <CashflowControls
+              pIndex={pIndex}
+              portfolio={portfolio}
+              currency={config.baseCurrency}
+              months={askedMonths}
+              invalid={
+                portfolioIssues.portfolio?.code === "V-011" ||
+                portfolioIssues.portfolio?.code === "V-014"
+              }
+              errorId={portfolioMessage ? errorId : undefined}
+              onChange={(patch) => updatePortfolio(pIndex, patch)}
+            />
+
             {portfolioMessage ? (
               <p id={errorId} role="alert" className="text-sm text-destructive">
                 {portfolioMessage}
@@ -402,6 +470,319 @@ export function PortfolioForm({
         ) : null}
       </div>
     </form>
+  )
+}
+
+/**
+ * วิธีปรับสมดุลของพอร์ตนั้น (US-19) — ช่องเกณฑ์โผล่เฉพาะแบบเบี่ยงเบน
+ * คำอธิบายแปลงเกณฑ์เป็นช่วงน้ำหนักจริงให้เห็น ไม่ใช่บอกแค่ตัวเลขจุดเปอร์เซ็นต์ (BR-CMP-56)
+ */
+function RebalanceControls({
+  pIndex,
+  portfolio,
+  invalid,
+  errorId,
+  onChange,
+}: {
+  pIndex: number
+  portfolio: PortfolioSpec
+  invalid: boolean
+  errorId?: string
+  onChange: (patch: Partial<PortfolioSpec>) => void
+}) {
+  const { t } = useLanguage()
+  const selectId = `p${pIndex}-rebalance`
+  const bandId = `p${pIndex}-band`
+  const bandHintId = `${bandId}-hint`
+  const points = Number(portfolio.bandPoints)
+  const showBandHint = Number.isFinite(points) && portfolio.bandPoints.trim() !== ""
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <div className="flex flex-1 flex-col gap-1">
+          <Label htmlFor={selectId} className="text-xs text-muted-foreground">
+            {t("form.rebalance")}
+          </Label>
+          <SelectInput
+            id={selectId}
+            value={portfolio.rebalance}
+            onChange={(value) =>
+              onChange({
+                rebalance: value as RebalanceMode,
+                // เพิ่งเปลี่ยนมาเป็นแบบเบี่ยงเบนแล้วยังไม่เคยกรอก ให้เริ่มที่ค่าปริยาย (BR-CMP-57)
+                bandPoints:
+                  value === "bands" && portfolio.bandPoints.trim() === ""
+                    ? DEFAULT_BAND_POINTS
+                    : portfolio.bandPoints,
+              })
+            }
+          >
+            {REBALANCE_OPTIONS.map((mode) => (
+              <option key={mode} value={mode}>
+                {t(REBALANCE_LABEL[mode])}
+              </option>
+            ))}
+          </SelectInput>
+        </div>
+
+        {portfolio.rebalance === "bands" ? (
+          <div className="flex w-full flex-col gap-1 sm:w-44">
+            <Label htmlFor={bandId} className="text-xs text-muted-foreground">
+              {t("form.bandPoints")}
+            </Label>
+            <Input
+              id={bandId}
+              inputMode="decimal"
+              value={portfolio.bandPoints}
+              aria-invalid={invalid}
+              aria-describedby={[showBandHint ? bandHintId : null, invalid ? errorId : null]
+                .filter(Boolean)
+                .join(" ") || undefined}
+              onChange={(e) => onChange({ bandPoints: e.target.value })}
+            />
+          </div>
+        ) : null}
+      </div>
+
+      {portfolio.rebalance === "bands" && showBandHint ? (
+        <p id={bandHintId} className="text-xs text-pretty text-muted-foreground">
+          {t("form.bandPointsHint", {
+            points: portfolio.bandPoints.trim(),
+            low: BAND_EXAMPLE_WEIGHT - points,
+            high: BAND_EXAMPLE_WEIGHT + points,
+          })}
+        </p>
+      ) : null}
+
+      {/* ข้อจำกัดที่ทำให้ผลดูดีกว่าความจริง ต้องบอกไว้ตรงที่ผู้ใช้เลือก (BR-CMP-58) */}
+      {portfolio.rebalance !== "none" ? (
+        <p className="text-xs text-pretty text-muted-foreground">{t("form.rebalanceNoFees")}</p>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * เงินเข้าออกระหว่างทางของพอร์ตนั้น (US-18) — ปิดอยู่เป็นค่าเริ่มต้น
+ * ช่องที่เหลือโผล่เฉพาะตอนเปิด เพื่อไม่ให้ฟอร์มยาวเกินไปเมื่อเทียบครบสามพอร์ต
+ */
+function CashflowControls({
+  pIndex,
+  portfolio,
+  currency,
+  months,
+  invalid,
+  errorId,
+  onChange,
+}: {
+  pIndex: number
+  portfolio: PortfolioSpec
+  currency: Currency
+  months: MonthlyReturn[]
+  invalid: boolean
+  errorId?: string
+  onChange: (patch: Partial<PortfolioSpec>) => void
+}) {
+  const { t } = useLanguage()
+  const cashflow = portfolio.cashflow
+  const toggleId = `p${pIndex}-cashflow`
+  const amountId = `p${pIndex}-cashflow-amount`
+  const allocationId = `p${pIndex}-cashflow-allocation`
+  const allocationHintId = `${allocationId}-hint`
+  const totalId = `p${pIndex}-cashflow-total`
+
+  const update = (patch: Partial<CashflowSpec>) =>
+    onChange({ cashflow: cashflow ? { ...cashflow, ...patch } : null })
+
+  const planned =
+    cashflow && Number.isFinite(Number(cashflow.amount)) && cashflow.amount.trim() !== ""
+      ? plannedTotal(
+          {
+            direction: cashflow.direction,
+            amount: Number(cashflow.amount),
+            basis: cashflow.basis,
+            frequency: cashflow.frequency,
+            inflationAdjusted: cashflow.inflationAdjusted,
+            allocation: cashflow.allocation,
+          },
+          months,
+          INFLATION_RATES,
+        )
+      : null
+
+  return (
+    <div className="flex flex-col gap-2 border-t pt-3">
+      <label className="flex items-center gap-2">
+        <Checkbox
+          id={toggleId}
+          checked={cashflow !== null}
+          onCheckedChange={(checked) =>
+            onChange({ cashflow: checked === true ? defaultCashflow() : null })
+          }
+        />
+        <span className="text-xs font-medium">{t("form.cashflowEnable")}</span>
+      </label>
+
+      {cashflow ? (
+        <div className="flex flex-col gap-2">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor={`${toggleId}-direction`} className="text-xs text-muted-foreground">
+                {t("form.cashflowDirection")}
+              </Label>
+              <SelectInput
+                id={`${toggleId}-direction`}
+                value={cashflow.direction}
+                onChange={(value) =>
+                  update({
+                    direction: value as CashflowDirection,
+                    // เปอร์เซ็นต์ตีความได้เฉพาะตอนถอน กลับมาใส่เงินจึงต้องกลับเป็นจำนวนเงิน
+                    basis: value === "deposit" ? "fixed" : cashflow.basis,
+                  })
+                }
+              >
+                <option value="deposit">{t("form.cashflowDeposit")}</option>
+                <option value="withdraw">{t("form.cashflowWithdraw")}</option>
+              </SelectInput>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <Label htmlFor={amountId} className="text-xs text-muted-foreground">
+                {cashflow.basis === "percent"
+                  ? `${t("form.cashflowAmount")} (%)`
+                  : `${t("form.cashflowAmount")} (${t(`currency.${currency}.unit`)})`}
+              </Label>
+              <Input
+                id={amountId}
+                inputMode="decimal"
+                value={cashflow.amount}
+                aria-invalid={invalid}
+                aria-describedby={invalid ? errorId : undefined}
+                onChange={(e) => update({ amount: e.target.value })}
+              />
+            </div>
+
+            {cashflow.direction === "withdraw" ? (
+              <div className="flex flex-col gap-1">
+                <Label htmlFor={`${toggleId}-basis`} className="text-xs text-muted-foreground">
+                  {t("form.cashflowBasis")}
+                </Label>
+                <SelectInput
+                  id={`${toggleId}-basis`}
+                  value={cashflow.basis}
+                  onChange={(value) => update({ basis: value as CashflowBasis })}
+                >
+                  <option value="fixed">{t("form.cashflowFixed")}</option>
+                  <option value="percent">{t("form.cashflowPercent")}</option>
+                </SelectInput>
+              </div>
+            ) : null}
+
+            <div className="flex flex-col gap-1">
+              <Label htmlFor={`${toggleId}-frequency`} className="text-xs text-muted-foreground">
+                {t("form.cashflowFrequency")}
+              </Label>
+              <SelectInput
+                id={`${toggleId}-frequency`}
+                value={cashflow.frequency}
+                onChange={(value) => update({ frequency: value as CashflowFrequency })}
+              >
+                {CASHFLOW_FREQUENCY_OPTIONS.map((frequency) => (
+                  <option key={frequency} value={frequency}>
+                    {t(CASHFLOW_FREQUENCY_LABEL[frequency])}
+                  </option>
+                ))}
+              </SelectInput>
+            </div>
+
+            {/* กระจายอย่างไรมีความหมายเฉพาะตอนใส่เงิน — การถอนดึงตามน้ำหนักจริงเสมอ (BR-CMP-60) */}
+            {cashflow.direction === "deposit" ? (
+              <div className="flex flex-col gap-1 sm:col-span-2">
+                <Label htmlFor={allocationId} className="text-xs text-muted-foreground">
+                  {t("form.cashflowAllocation")}
+                </Label>
+                <SelectInput
+                  id={allocationId}
+                  value={cashflow.allocation}
+                  onChange={(value) => update({ allocation: value as CashflowAllocation })}
+                >
+                  <option value="prorata">{t("form.cashflowAllocationProrata")}</option>
+                  <option value="target">{t("form.cashflowAllocationTarget")}</option>
+                </SelectInput>
+                {/* บอกผลที่ตามมาของทั้งสองแบบ ไม่ใช่บอกแค่ชื่อวิธี (BR-CMP-59b) */}
+                <p id={allocationHintId} className="text-xs text-pretty text-muted-foreground">
+                  {t("form.cashflowAllocationHint")}
+                </p>
+              </div>
+            ) : null}
+          </div>
+
+          {/* เพิ่มตามเงินเฟ้อตีความได้เฉพาะจำนวนเงินคงที่ (BR-CMP-49) */}
+          {cashflow.basis === "fixed" ? (
+            <label className="flex items-center gap-2">
+              <Checkbox
+                id={`${toggleId}-inflation`}
+                checked={cashflow.inflationAdjusted}
+                onCheckedChange={(checked) => update({ inflationAdjusted: checked === true })}
+              />
+              <span className="text-xs">{t("form.cashflowInflation")}</span>
+            </label>
+          ) : null}
+
+          <p id={totalId} className="text-xs text-muted-foreground" role="status">
+            {planned && planned.total !== null
+              ? t(
+                  cashflow.direction === "withdraw"
+                    ? "form.cashflowPlannedTotalWithdraw"
+                    : "form.cashflowPlannedTotal",
+                  {
+                    total: formatMoney(planned.total, currency),
+                    periods: planned.periods,
+                  },
+                )
+              : t("form.cashflowPlannedUnknown")}
+          </p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/** เดือนทั้งหมดของช่วงปีที่ผู้ใช้ขอ — ค่าเป็นศูนย์เพราะใช้แค่ลำดับเดือน ไม่ใช้ผลตอบแทน */
+function monthsInRange(startYear: number, endYear: number): MonthlyReturn[] {
+  if (!Number.isFinite(startYear) || !Number.isFinite(endYear) || endYear < startYear) return []
+  const months: MonthlyReturn[] = []
+  for (let year = startYear; year <= endYear; year++) {
+    for (let month = 1; month <= 12; month++) months.push({ month: toYearMonth(year, month), value: 0 })
+  }
+  return months
+}
+
+/**
+ * รายการเลือกที่มีตัวเลือกตายตัว — ใช้ของเบราว์เซอร์เพราะเข้าถึงด้วยแป้นพิมพ์และโปรแกรมอ่าน
+ * หน้าจอได้ครบโดยไม่ต้องเขียนเอง ต่างจาก ComboboxField ที่มีไว้สำหรับค่าที่พิมพ์เองได้
+ */
+function SelectInput({
+  id,
+  value,
+  children,
+  onChange,
+}: {
+  id: string
+  value: string
+  children: React.ReactNode
+  onChange: (value: string) => void
+}) {
+  return (
+    <select
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 py-1 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+    >
+      {children}
+    </select>
   )
 }
 

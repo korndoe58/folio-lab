@@ -5,6 +5,9 @@ import {
   type MonthRange,
   type YearMonth,
 } from "@/types/series"
+import { cashflowPeriods, plannedAmount, type CashflowPlan } from "./cashflow"
+import type { GrowthPoint } from "./growth"
+import type { InflationRate } from "./inflation"
 
 export type PortfolioAsset = {
   symbol: string
@@ -13,7 +16,19 @@ export type PortfolioAsset = {
   returns: MonthlyReturn[]
 }
 
-export type RebalanceMode = "annual" | "none"
+/** วิธีดึงน้ำหนักกลับสู่เป้าหมาย (BR-CMP-53) */
+export type RebalanceMode = "none" | "monthly" | "quarterly" | "annual" | "bands"
+
+export type PortfolioOptions = {
+  rebalance?: RebalanceMode
+  /** เกณฑ์เบี่ยงเบนเป็นจุดเปอร์เซ็นต์ ใช้เมื่อเลือกแบบ bands (BR-CMP-56) */
+  bandPoints?: number
+  /** เงินตั้งต้นของเส้นมูลค่า — ปริยาย 1 คือเส้นการเติบโตของเงินหนึ่งหน่วย */
+  initialAmount?: number
+  /** แผนเงินเข้าออก — ไม่ส่งมา = ไม่มีเงินเข้าออก ซึ่งให้ผลเท่าเดิมทุกหลัก (BR-CMP-33) */
+  cashflow?: CashflowPlan | null
+  inflationRates?: InflationRate[]
+}
 
 export type PortfolioResult = {
   returns: MonthlyReturn[]
@@ -21,21 +36,49 @@ export type PortfolioResult = {
   usedRange: MonthRange | null
   /** สัญลักษณ์ที่เป็นตัวจำกัดช่วง (ข้อมูลเริ่มช้าสุดหรือจบเร็วสุด) สำหรับข้อความ N-001 */
   limitedBy: string[]
+  /** จำนวนครั้งที่ปรับสมดุลตามรอบ — ไม่นับการใส่เงิน (BR-CMP-63) */
+  rebalanceCount: number
+  /** เส้นมูลค่าที่รวมเงินเข้าออกแล้ว จุดแรกคือจุดตั้งต้นก่อนเดือนแรก (BR-CMP-39) */
+  values: GrowthPoint[]
+  /** เงินที่ใส่เพิ่มของแต่ละเดือน (ไม่รวมเงินตั้งต้น) และเงินที่ถอนได้จริงของแต่ละเดือน */
+  deposits: number[]
+  withdrawals: number[]
+  /** เดือนที่ถูกถอนจนหมด — null เมื่อยังไม่หมด (BR-CMP-50) */
+  depletedAt: YearMonth | null
 }
 
-const EMPTY: PortfolioResult = { returns: [], usedRange: null, limitedBy: [] }
+const EMPTY: PortfolioResult = {
+  returns: [],
+  usedRange: null,
+  limitedBy: [],
+  rebalanceCount: 0,
+  values: [],
+  deposits: [],
+  withdrawals: [],
+  depletedAt: null,
+}
 
 /**
- * ผลตอบแทนรายเดือนของพอร์ต (BR-ENG-01..03, BR-ENG-14)
+ * ผลตอบแทนรายเดือนและเส้นมูลค่าของพอร์ต (BR-ENG-01..03, BR-ENG-14, US-18, US-19)
  *
- * น้ำหนักลอยไปตามผลตอบแทนระหว่างปี แล้วถูกดึงกลับสู่น้ำหนักเป้าหมาย ณ สิ้นเดือนธันวาคม
+ * **ลำดับภายในหนึ่งเดือนคือสิ่งที่กำหนดตัวเลขทุกตัว:**
+ * คิดผลตอบแทนของเดือนจากน้ำหนักก่อนหน้า → ปรับสมดุลถ้าถึงรอบ → แล้วจึงใส่หรือถอนเงิน
+ * เงินที่ใส่เดือนนี้จึงยังไม่ได้ผลตอบแทนของเดือนนี้ (BR-CMP-37)
+ *
+ * ติดตาม**น้ำหนัก**แยกจาก**มูลค่า** เพราะผลตอบแทนเป็นเรื่องของสัดส่วนล้วน ๆ — เงินเข้าออกที่
+ * กระจายตามสัดส่วนที่ถืออยู่จึงไม่แตะชุดผลตอบแทนเลย ส่วนแบบตามน้ำหนักเป้าหมายแตะ เพราะ
+ * เป็นการดึงน้ำหนักกลับเข้าเป้าไปในตัว ([PD-016](../../docs/product/decision-log.md))
+ *
  * ฟังก์ชันบริสุทธิ์: ผลลัพธ์ขึ้นกับข้อมูลนำเข้าเท่านั้น
  */
 export function portfolioReturns(
   assets: PortfolioAsset[],
-  options: { rebalance?: RebalanceMode } = {},
+  options: PortfolioOptions = {},
 ): PortfolioResult {
-  const rebalance = options.rebalance ?? "annual"
+  const mode = options.rebalance ?? "annual"
+  const initialAmount = options.initialAmount ?? 1
+  const plan = options.cashflow ?? null
+  const rates = options.inflationRates ?? []
   if (assets.length === 0) return EMPTY
 
   const overlap = commonRange(assets)
@@ -46,30 +89,110 @@ export function portfolioReturns(
 
   const targetWeights = normalizeWeights(assets.map((a) => a.weight))
   const lookup = assets.map((a) => indexReturns(a.returns))
+  const periods = plan ? cashflowPeriods(months.length, plan.frequency) : new Set<number>()
+  const firstYear = parseYearMonth(months[0]).year
 
-  // มูลค่าสมมติต่อสินทรัพย์ เริ่มที่น้ำหนักเป้าหมาย รวมกันได้ 1
-  let holdings = [...targetWeights]
+  let weights = [...targetWeights]
+  let value = initialAmount
+  let rebalanceCount = 0
+  let depletedAt: YearMonth | null = null
+
   const returns: MonthlyReturn[] = []
+  const values: GrowthPoint[] = [{ month: null, value }]
+  const deposits: number[] = []
+  const withdrawals: number[] = []
 
-  for (const month of months) {
-    const before = holdings.reduce((sum, v) => sum + v, 0)
-
-    holdings = holdings.map((value, i) => {
-      const monthly = lookup[i].get(month)
+  months.forEach((month, index) => {
+    // 1–3 · ผลตอบแทนของเดือน คิดจากน้ำหนักก่อนหน้า ก่อนเงินเข้าออกเสมอ
+    const grown = weights.map((weight, i) => {
       // ทุกเดือนในช่วงร่วมต้องมีค่าครบทุกสินทรัพย์อยู่แล้ว แต่กันไว้ไม่ให้กลายเป็น NaN
-      return value * (1 + (monthly ?? 0))
+      const monthly = lookup[i].get(month) ?? 0
+      return weight * (1 + monthly)
     })
+    const growth = grown.reduce((sum, v) => sum + v, 0)
+    returns.push({ month, value: growth - 1 })
+    weights = growth > 0 ? grown.map((v) => v / growth) : [...targetWeights]
+    value *= growth
 
-    const after = holdings.reduce((sum, v) => sum + v, 0)
-    returns.push({ month, value: before > 0 ? after / before - 1 : 0 })
-
-    // ดึงน้ำหนักกลับสู่เป้าหมาย ณ สิ้นปี (BR-ENG-03) — ไม่มีค่าธรรมเนียมและภาษี
-    if (rebalance === "annual" && parseYearMonth(month).month === 12) {
-      holdings = targetWeights.map((w) => w * after)
+    // 4 · ปรับสมดุลตามรอบ — ไม่มีค่าธรรมเนียมและภาษี (BR-CMP-58)
+    if (shouldRebalance(mode, month, weights, targetWeights, options.bandPoints)) {
+      weights = [...targetWeights]
+      rebalanceCount++
     }
-  }
 
-  return { returns, usedRange: overlap.range, limitedBy: overlap.limitedBy }
+    // 5 · เงินเข้าออกของงวดนั้น
+    let deposited = 0
+    let withdrawn = 0
+    if (plan && periods.has(index)) {
+      const year = parseYearMonth(month).year
+      if (plan.direction === "deposit") {
+        deposited = depositAmount(plan, year, firstYear, rates, value)
+        if (deposited > 0) {
+          const next = value + deposited
+          if (plan.allocation === "target") {
+            // ดึงน้ำหนักเข้าหาเป้าไปในตัว — ชุดผลตอบแทนของเดือนถัด ๆ ไปจึงเปลี่ยน
+            weights = weights.map((w, i) => (w * value + deposited * targetWeights[i]) / next)
+          }
+          value = next
+        }
+      } else {
+        const wanted =
+          plan.basis === "percent"
+            ? value * (plan.amount / 100)
+            : plannedAmount(plan, year, firstYear, rates)
+        // ถอนได้เท่าที่มี แล้วงวดถัด ๆ ไปถอนไม่ได้อีก (BR-CMP-50)
+        withdrawn = Math.max(0, Math.min(wanted, value))
+        value -= withdrawn
+        // ถอนตามสัดส่วนที่ถืออยู่ น้ำหนักจึงไม่ขยับ (BR-CMP-60)
+        if (value <= 0 && depletedAt === null) depletedAt = month
+      }
+    }
+
+    deposits.push(deposited)
+    withdrawals.push(withdrawn)
+    values.push({ month, value })
+  })
+
+  return {
+    returns,
+    usedRange: overlap.range,
+    limitedBy: overlap.limitedBy,
+    rebalanceCount,
+    values,
+    deposits,
+    withdrawals,
+    depletedAt,
+  }
+}
+
+function depositAmount(
+  plan: CashflowPlan,
+  year: number,
+  firstYear: number,
+  rates: InflationRate[],
+  value: number,
+): number {
+  if (plan.basis === "percent") return value * (plan.amount / 100)
+  return plannedAmount(plan, year, firstYear, rates)
+}
+
+/** ถึงรอบปรับสมดุลหรือยัง — รอบตามปฏิทิน ส่วนแบบ bands ตรวจการเบี่ยงเบนทุกสิ้นเดือน (BR-CMP-55/56) */
+function shouldRebalance(
+  mode: RebalanceMode,
+  month: YearMonth,
+  weights: number[],
+  targetWeights: number[],
+  bandPoints: number | undefined,
+): boolean {
+  if (mode === "none") return false
+  if (mode === "monthly") return true
+
+  const { month: calendarMonth } = parseYearMonth(month)
+  if (mode === "annual") return calendarMonth === 12
+  if (mode === "quarterly") return calendarMonth % 3 === 0
+
+  const band = (bandPoints ?? 0) / 100
+  return weights.some((weight, i) => Math.abs(weight - targetWeights[i]) > band)
 }
 
 export type SharedRange = { range: MonthRange; limitedBy: string[] }

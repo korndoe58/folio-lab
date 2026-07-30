@@ -8,10 +8,26 @@ export {
   commonRange,
   portfolioReturns,
   type PortfolioAsset,
+  type PortfolioOptions,
   type PortfolioResult,
   type RebalanceMode,
   type SharedRange,
 } from "./portfolio"
+export {
+  buildFlows,
+  cashflowPeriods,
+  depletionMonth,
+  moneyWeightedReturn,
+  plannedAmount,
+  plannedTotal,
+  type CashflowAllocation,
+  type CashflowBasis,
+  type CashflowDirection,
+  type CashflowFrequency,
+  type CashflowPlan,
+  type Flow,
+  type PlannedTotal,
+} from "./cashflow"
 export { growthSeries, endBalance, type GrowthPoint } from "./growth"
 export { cagr, annualizeGrowth, annualizedStdev, sharpe, sortino } from "./metrics"
 export { annualReturns, bestWorstFullYears, type AnnualReturn } from "./annual"

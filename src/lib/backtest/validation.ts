@@ -1,6 +1,8 @@
 import {
   MAX_AMOUNT,
+  MAX_BAND_POINTS,
   MIN_AMOUNT,
+  MIN_BAND_POINTS,
   SYMBOL_PATTERN,
   WEIGHT_SUM_TOLERANCE,
   type BacktestConfig,
@@ -18,7 +20,10 @@ export type ValidationCode =
   | "V-007"
   | "V-008"
   | "V-010"
+  | "V-011"
+  | "V-012"
   | "V-013"
+  | "V-014"
 
 export type ValidationIssue = {
   code: ValidationCode
@@ -143,6 +148,26 @@ export function validateConfig(
       return
     }
 
+    // เกณฑ์การเบี่ยงเบนตรวจเฉพาะตอนเลือกวิธีที่ใช้มันจริง (BR-CMP-57)
+    if (portfolio.rebalance === "bands" && !inRange(portfolio.bandPoints, MIN_BAND_POINTS, MAX_BAND_POINTS)) {
+      target.portfolio = { code: "V-012" }
+      return
+    }
+
+    const cashflow = portfolio.cashflow
+    if (cashflow) {
+      if (cashflow.basis === "percent") {
+        // ถอนเป็นเปอร์เซ็นต์ต้องอยู่ในช่วงที่ตีความได้ (BR-CMP-36)
+        if (!inRange(cashflow.amount, 0, 100, { exclusiveMin: true })) {
+          target.portfolio = { code: "V-014" }
+          return
+        }
+      } else if (!isPositiveNumber(cashflow.amount)) {
+        target.portfolio = { code: "V-011" }
+        return
+      }
+    }
+
     const filled = filledRows(portfolio.assets)
     if (filled.length === 0) {
       target.portfolio = { code: "V-002" }
@@ -179,6 +204,23 @@ export function validateConfig(
   }
 
   return issues
+}
+
+function isPositiveNumber(raw: string): boolean {
+  const value = Number(raw.trim())
+  return raw.trim() !== "" && Number.isFinite(value) && value > 0
+}
+
+function inRange(
+  raw: string,
+  min: number,
+  max: number,
+  options: { exclusiveMin?: boolean } = {},
+): boolean {
+  const value = Number(raw.trim())
+  if (raw.trim() === "" || !Number.isFinite(value)) return false
+  if (options.exclusiveMin ? value <= min : value < min) return false
+  return value <= max
 }
 
 function isValidWeight(raw: string): boolean {

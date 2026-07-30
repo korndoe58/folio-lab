@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { decodeConfig, defaultConfig, encodeConfig, isEmptyParams } from "./url"
+import { decodeConfig, defaultConfig, encodeConfig, isEmptyParams, makePortfolio } from "./url"
 import { DEFAULT_BASE_CURRENCY } from "@/types/backtest"
 
 const LAST_CLOSED_YEAR = 2026
@@ -15,15 +15,10 @@ describe("US-06 อ่านค่าจากลิงก์", () => {
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.config).toEqual({
-      portfolios: [
-        {
-          name: "",
-          assets: [
+      portfolios: [makePortfolio({ assets: [
             { symbol: "VTI", weight: "60" },
             { symbol: "BND", weight: "40" },
-          ],
-        },
-      ],
+          ] })],
       startYear: 2015,
       endYear: 2025,
       baseCurrency: "USD",
@@ -150,15 +145,10 @@ describe("US-06 อ่านค่าจากลิงก์", () => {
 describe("US-06 เขียนค่าลงลิงก์", () => {
   test("AC-URL-01 รูปแบบลิงก์ตาม BR-URL-02 และอ่านออกในแถบที่อยู่", () => {
     const encoded = encodeConfig({
-      portfolios: [
-        {
-          name: "",
-          assets: [
+      portfolios: [makePortfolio({ assets: [
             { symbol: "VTI", weight: "60" },
             { symbol: "BND", weight: "40" },
-          ],
-        },
-      ],
+          ] })],
       startYear: 2015,
       endYear: 2025,
       baseCurrency: "USD",
@@ -174,17 +164,12 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
 
   test("แปลงไปกลับได้ค่าเดิมเสมอ", () => {
     const config = {
-      portfolios: [
-        {
-          name: "",
-          assets: [
+      portfolios: [makePortfolio({ assets: [
             { symbol: "VTI", weight: "48" },
             { symbol: "VNQ", weight: "8" },
             { symbol: "VXUS", weight: "24" },
             { symbol: "BND", weight: "20" },
-          ],
-        },
-      ],
+          ] })],
       startYear: 2012,
       endYear: 2026,
       amount: 25_000,
@@ -200,15 +185,10 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
 
   test("แถวที่ยังไม่กรอกสัญลักษณ์ไม่ถูกเขียนลงลิงก์", () => {
     const encoded = encodeConfig({
-      portfolios: [
-        {
-          name: "",
-          assets: [
+      portfolios: [makePortfolio({ assets: [
             { symbol: "VTI", weight: "100" },
             { symbol: "", weight: "" },
-          ],
-        },
-      ],
+          ] })],
       baseCurrency: "USD",
       startYear: 2020,
       endYear: 2026,
@@ -229,7 +209,7 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
 })
 
 describe("US-16 หลายพอร์ตในลิงก์", () => {
-  const solo = (assets: string) => ({ name: "", assets: parseRows(assets) })
+  const solo = (assets: string) => makePortfolio({ assets: parseRows(assets) })
   const parseRows = (raw: string) =>
     raw.split(",").map((piece) => {
       const [symbol, weight] = piece.split(":")
@@ -250,9 +230,9 @@ describe("US-16 หลายพอร์ตในลิงก์", () => {
     const config = {
       ...defaultConfig(LAST_CLOSED_YEAR),
       portfolios: [
-        { name: "ผสม", assets: parseRows("VTI:60,BND:40") },
-        { name: "หุ้นล้วน", assets: parseRows("VTI:100") },
-        { name: "", assets: parseRows("PTT.BK:100") },
+        makePortfolio({ name: "ผสม", assets: parseRows("VTI:60,BND:40") }),
+        makePortfolio({ name: "หุ้นล้วน", assets: parseRows("VTI:100") }),
+        makePortfolio({ assets: parseRows("PTT.BK:100") }),
       ],
     }
 
@@ -269,7 +249,7 @@ describe("US-16 หลายพอร์ตในลิงก์", () => {
   test("พอร์ตเดียวที่ตั้งชื่อเอง ใช้รูปแบบหลายพอร์ตเพื่อให้ชื่อเดินทางไปกับลิงก์ได้", () => {
     const encoded = encodeConfig({
       ...defaultConfig(LAST_CLOSED_YEAR),
-      portfolios: [{ name: "ของฉัน", assets: parseRows("VTI:100") }],
+      portfolios: [makePortfolio({ name: "ของฉัน", assets: parseRows("VTI:100") })],
     })
 
     expect(encoded).toContain("p1=VTI:100")
@@ -366,5 +346,94 @@ describe("US-15 ตัวเลือกปรับเงินเฟ้อใ�
   test("ลิงก์ที่มีแค่ตัวเลือกนี้ ไม่ถือเป็นฟอร์มเปล่า", () => {
     expect(isEmptyParams(params("real=1"))).toBe(false)
     expect(isEmptyParams(params(""))).toBe(true)
+  })
+})
+
+describe("US-18 + US-19 ค่าเสริมของพอร์ตในลิงก์", () => {
+  const one = (assets: string) => [{ symbol: assets.split(":")[0], weight: assets.split(":")[1] }]
+
+  test("BR-CMP-54 ค่าปริยายไม่ถูกเขียนลงลิงก์ ลิงก์เดิมจึงไม่ขยับ", () => {
+    const encoded = encodeConfig({
+      ...defaultConfig(LAST_CLOSED_YEAR),
+      portfolios: [makePortfolio({ assets: one("VTI:100") })],
+    })
+
+    expect(encoded).toContain("assets=VTI:100")
+    expect(encoded).not.toContain(".rb")
+    expect(encoded).not.toContain(".cf")
+  })
+
+  test("BR-CMP-62 วิธีปรับสมดุลและเกณฑ์เดินทางไปกลับได้", () => {
+    const config = {
+      ...defaultConfig(LAST_CLOSED_YEAR),
+      portfolios: [
+        makePortfolio({ assets: one("VTI:100"), rebalance: "none" as const }),
+        makePortfolio({
+          assets: one("BND:100"),
+          rebalance: "bands" as const,
+          bandPoints: "7",
+        }),
+      ],
+    }
+
+    const encoded = encodeConfig(config)
+    expect(encoded).toContain("p1.rb=none")
+    expect(encoded).toContain("p2.rb=bands:7")
+
+    const result = decodeConfig(params(encoded), LAST_CLOSED_YEAR)
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.config.portfolios).toEqual(config.portfolios)
+  })
+
+  test("BR-CMP-52 เงินเข้าออกเดินทางไปกลับได้ครบทุกช่อง", () => {
+    const config = {
+      ...defaultConfig(LAST_CLOSED_YEAR),
+      portfolios: [
+        makePortfolio({
+          assets: one("VTI:100"),
+          cashflow: {
+            direction: "withdraw" as const,
+            amount: "4",
+            basis: "percent" as const,
+            frequency: "quarterly" as const,
+            inflationAdjusted: true,
+            allocation: "target" as const,
+          },
+        }),
+      ],
+    }
+
+    const encoded = encodeConfig(config)
+    expect(encoded).toContain("p1.cf=4:q:out:pct:target:cpi")
+
+    const result = decodeConfig(params(encoded), LAST_CLOSED_YEAR)
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.config.portfolios[0].cashflow).toEqual(config.portfolios[0].cashflow)
+  })
+
+  test("AC-CMP-43 ลิงก์ที่ไม่ระบุวิธีปรับสมดุล ใช้รายปี", () => {
+    const result = decodeConfig(params("p1=VTI:100"), LAST_CLOSED_YEAR)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.config.portfolios[0].rebalance).toBe("annual")
+    expect(result.config.portfolios[0].cashflow).toBeNull()
+  })
+
+  test("ค่าที่อ่านไม่ออกถือว่าโครงสร้างเสีย", () => {
+    expect(decodeConfig(params("p1=VTI:100&p1.rb=weekly"), LAST_CLOSED_YEAR).ok).toBe(false)
+    expect(decodeConfig(params("p1=VTI:100&p1.rb=bands"), LAST_CLOSED_YEAR).ok).toBe(false)
+    expect(decodeConfig(params("p1=VTI:100&p1.cf=200:m:in"), LAST_CLOSED_YEAR).ok).toBe(false)
+    expect(decodeConfig(params("p1=VTI:100&p1.cf=200:w:in:fixed:prorata:flat"), LAST_CLOSED_YEAR).ok).toBe(false)
+  })
+
+  test("พอร์ตเดียวที่ตั้งค่าเสริม ใช้รูปแบบหลายพอร์ตเพื่อให้ค่าเดินทางไปกับลิงก์ได้", () => {
+    const encoded = encodeConfig({
+      ...defaultConfig(LAST_CLOSED_YEAR),
+      portfolios: [makePortfolio({ assets: one("VTI:100"), rebalance: "monthly" as const })],
+    })
+
+    expect(encoded).toContain("p1=VTI:100")
+    expect(encoded).toContain("p1.rb=monthly")
+    expect(encoded).not.toContain("assets=")
   })
 })

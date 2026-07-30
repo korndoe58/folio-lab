@@ -238,3 +238,100 @@ describe("US-04 กรณีขอบอื่น ๆ", () => {
     expect(points[2].value).toBeCloseTo(121, 10)
   })
 })
+
+describe("US-19 วิธีปรับสมดุลพอร์ต", () => {
+  /** 50/50 ที่เดือนแรกตัวหนึ่ง +10% อีกตัว −10% แล้วเดือนถัดมาทั้งคู่ 0% */
+  const drifting = [
+    { symbol: "A", weight: 50, returns: series("2024-01", [0.1, 0, 0]) },
+    { symbol: "B", weight: 50, returns: series("2024-01", [-0.1, 0, 0]) },
+  ]
+
+  test("AC-CMP-36 ปรับรายเดือน ดึงน้ำหนักกลับ 50/50 ทุกสิ้นเดือน", () => {
+    const result = portfolioReturns(drifting, { rebalance: "monthly" })
+
+    expect(result.returns[0].value).toBeCloseTo(0, 12)
+    // เดือนที่สองทั้งคู่ 0% และน้ำหนักถูกดึงกลับแล้ว ผลจึงเป็น 0 พอดี
+    expect(result.returns[1].value).toBeCloseTo(0, 12)
+    expect(result.rebalanceCount).toBe(3)
+  })
+
+  test("AC-CMP-37 ไม่ปรับ น้ำหนักลอยเป็น 55/45 และไม่มีการปรับเลย", () => {
+    const result = portfolioReturns(drifting, { rebalance: "none" })
+    expect(result.rebalanceCount).toBe(0)
+
+    // พิสูจน์ว่าน้ำหนักลอยจริง: เดือนถัดไปให้ A +10% อีกครั้ง ผลต้องเป็น 0.55 × 10% = 5.5%
+    const driftedThenUp = [
+      { symbol: "A", weight: 50, returns: series("2024-01", [0.1, 0.1]) },
+      { symbol: "B", weight: 50, returns: series("2024-01", [-0.1, 0]) },
+    ]
+    const floated = portfolioReturns(driftedThenUp, { rebalance: "none" })
+    expect(floated.returns[1].value).toBeCloseTo(0.055, 12)
+
+    // ปรับรายเดือนแล้วน้ำหนักกลับเป็น 50/50 ผลจึงเป็น 0.5 × 10% = 5%
+    const rebalanced = portfolioReturns(driftedThenUp, { rebalance: "monthly" })
+    expect(rebalanced.returns[1].value).toBeCloseTo(0.05, 12)
+  })
+
+  test("BR-CMP-55 รอบการปรับอิงปฏิทิน ไม่ใช่นับจากเดือนแรกของช่วง", () => {
+    const twoYears = [
+      { symbol: "A", weight: 50, returns: series("2024-02", Array(24).fill(0.01)) },
+      { symbol: "B", weight: 50, returns: series("2024-02", Array(24).fill(-0.01)) },
+    ]
+
+    // ก.พ. 2024 ถึง ม.ค. 2026 → ธ.ค. สองครั้ง
+    expect(portfolioReturns(twoYears, { rebalance: "annual" }).rebalanceCount).toBe(2)
+    // มี.ค./มิ.ย./ก.ย./ธ.ค. ของสองปี = 8 ครั้ง
+    expect(portfolioReturns(twoYears, { rebalance: "quarterly" }).rebalanceCount).toBe(8)
+    expect(portfolioReturns(twoYears, { rebalance: "monthly" }).rebalanceCount).toBe(24)
+  })
+
+  test("EC-CMP-20 ช่วงที่ไม่มีเดือนธันวาคมเลย ตั้งรายปีแล้วไม่มีการปรับ", () => {
+    const halfYear = [
+      { symbol: "A", weight: 50, returns: series("2024-01", Array(6).fill(0.01)) },
+      { symbol: "B", weight: 50, returns: series("2024-01", Array(6).fill(-0.01)) },
+    ]
+    expect(portfolioReturns(halfYear, { rebalance: "annual" }).rebalanceCount).toBe(0)
+  })
+
+  test("AC-CMP-38 แบบเบี่ยงเบนปรับเฉพาะเดือนที่ออกนอกช่วง และน้อยกว่ารายเดือน", () => {
+    const volatile = [
+      { symbol: "A", weight: 50, returns: series("2024-01", Array(12).fill(0.03)) },
+      { symbol: "B", weight: 50, returns: series("2024-01", Array(12).fill(-0.03)) },
+    ]
+
+    const bands = portfolioReturns(volatile, { rebalance: "bands", bandPoints: 5 })
+    const monthly = portfolioReturns(volatile, { rebalance: "monthly" })
+
+    expect(bands.rebalanceCount).toBeGreaterThan(0)
+    expect(bands.rebalanceCount).toBeLessThan(monthly.rebalanceCount)
+  })
+
+  test("EC-CMP-18/19 เกณฑ์กว้างไม่ปรับเลย เกณฑ์แคบปรับถี่", () => {
+    // A โต 2% ทุกเดือน B อยู่นิ่ง → น้ำหนักห่างจากเป้าราว 0.5 จุดต่อเดือน
+    const mild = [
+      { symbol: "A", weight: 50, returns: series("2024-01", Array(12).fill(0.02)) },
+      { symbol: "B", weight: 50, returns: series("2024-01", Array(12).fill(0)) },
+    ]
+
+    expect(portfolioReturns(mild, { rebalance: "bands", bandPoints: 50 }).rebalanceCount).toBe(0)
+    expect(
+      portfolioReturns(mild, { rebalance: "bands", bandPoints: 1 }).rebalanceCount,
+    ).toBeGreaterThan(0)
+  })
+
+  test("AC-CMP-40 พอร์ตสินทรัพย์เดียว ทุกวิธีให้ผลเท่ากัน", () => {
+    const solo = [{ symbol: "A", weight: 100, returns: series("2024-01", [0.05, -0.02, 0.03]) }]
+    const modes = ["none", "monthly", "quarterly", "annual", "bands"] as const
+
+    const results = modes.map((rebalance) =>
+      portfolioReturns(solo, { rebalance, bandPoints: 5 }).returns.map((r) => r.value),
+    )
+    for (const values of results) expect(values).toEqual(results[0])
+  })
+
+  test("AC-CMP-43 ค่าปริยายยังเป็นรายปี ผลจึงเท่ากับก่อนมีการ์ดนี้", () => {
+    expect(portfolioReturns(drifting).returns).toEqual(
+      portfolioReturns(drifting, { rebalance: "annual" }).returns,
+    )
+  })
+})

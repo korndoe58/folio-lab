@@ -103,8 +103,8 @@
 | --- | --- | --- | --- | --- | --- |
 | US-16 | ตั้งค่าและเทียบพอร์ตได้ถึง 3 ชุด | P0 | S15 | ✅ Done | [`./US-16-multi-portfolio.md`](./US-16-multi-portfolio.md) |
 | US-17 | กราฟและตารางทุกส่วนแสดงหลายพอร์ตพร้อมกัน | P0 | S15 | ✅ Done | [`./US-17-multi-portfolio-visuals.md`](./US-17-multi-portfolio-visuals.md) |
-| US-18 | ใส่เงินเพิ่มหรือถอนระหว่างทาง | P0 | S15b | 🟢 Ready | [`./US-18-cashflows.md`](./US-18-cashflows.md) |
-| US-19 | เลือกวิธีปรับสมดุลพอร์ต | P1 | S15b | 🟢 Ready | [`./US-19-rebalancing.md`](./US-19-rebalancing.md) |
+| US-18 | ใส่เงินเพิ่มหรือถอนระหว่างทาง | P0 | S15b | ✅ Done | [`./US-18-cashflows.md`](./US-18-cashflows.md) |
+| US-19 | เลือกวิธีปรับสมดุลพอร์ต | P1 | S15b | ✅ Done | [`./US-19-rebalancing.md`](./US-19-rebalancing.md) |
 | US-20 | ผลตอบแทนแบบหน้าต่างเลื่อน | P1 | S16 | 🟢 Ready | [`./US-20-rolling-returns.md`](./US-20-rolling-returns.md) |
 | US-21 | ตารางผลตอบแทนรายเดือนและส่งออกไฟล์ | P2 | S16 | 🟢 Ready | [`./US-21-monthly-table-export.md`](./US-21-monthly-table-export.md) |
 | US-22 | คัดลอกลิงก์ผลลัพธ์ | P2 | S16 | 🟢 Ready | [`./US-22-share-link.md`](./US-22-share-link.md) |
@@ -116,7 +116,7 @@
 | Route + params | Data mode | Story ที่สาธิตบน route นี้ |
 | --- | --- | --- |
 | `/backtest?p1=VTI:60,BND:40&p2=VTI:100&start=2015&end=2025&amount=10000&benchmark=SPY&base=USD` | จริง | US-16, US-17 |
-| `/backtest?p1=VTI:60,BND:40&p2=VTI:60,BND:40&p2.cf=200:m&start=2012&end=2026&…` | จริง | US-18 (ลงทีเดียว vs ทยอยลงทุน ด้วยสินทรัพย์ชุดเดียวกัน) |
+| `/backtest?p1=VTI:60,BND:40&p2=VTI:60,BND:40&p2.cf=200:m:in:fixed:prorata:flat&start=2015&end=2025&…` | จริง | US-18 (ลงทีเดียว vs ทยอยลงทุน ด้วยสินทรัพย์ชุดเดียวกัน) |
 | `/backtest?p1=VTI:60,BND:40&p1.rb=none&p2=VTI:60,BND:40&p2.rb=annual&…` | จริง | US-19 (ปรับสมดุลช่วยไหม) |
 | `/backtest?assets=VTI:60,BND:40&start=2015&end=2025&amount=10000&benchmark=SPY` | จริง | US-16 (ลิงก์รูปแบบเดิมต้องให้ค่าเดิมทุกหลัก) |
 | `/backtest?<ค่าที่ตั้ง>` แล้วเลื่อนลงส่วนล่างของหน้า | จริง | US-20, US-21, US-22 |
@@ -189,3 +189,4 @@
 ---
 
 **Anchor=Route** — spec กับ route จริงต้องตรงกัน ถ้าไม่ตรง ให้ตัดสินว่าฝั่งไหนถูก แล้วแก้อีกฝั่งใน session เดียวกัน
+| v1.1 | 2026-07-30 | PO (AI ช่วยร่าง) | S15b — US-18 และ US-19 ปิดเป็น ✅ Done · ปรับลิงก์ตัวอย่างของเงินเข้าออกให้ตรงกับรูปแบบที่ ship จริง |

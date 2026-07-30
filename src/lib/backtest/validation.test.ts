@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest"
 import type { BacktestConfig, PortfolioRow } from "@/types/backtest"
 import { evenWeights, hasIssues, validateConfig, weightSum } from "./validation"
+import { makePortfolio } from "./url"
 
 const LAST_CLOSED_YEAR = 2026
 
@@ -12,13 +13,12 @@ type ConfigOverrides = Partial<Omit<BacktestConfig, "portfolios">> & {
 
 const config = ({ assets, portfolios, ...overrides }: ConfigOverrides = {}): BacktestConfig => ({
   portfolios: portfolios ?? [
-    {
-      name: "",
+    makePortfolio({
       assets: assets ?? [
         { symbol: "VTI", weight: "60" },
         { symbol: "BND", weight: "40" },
       ],
-    },
+    }),
   ],
   startYear: 2015,
   endYear: 2025,
@@ -144,7 +144,7 @@ describe("US-05 การตรวจฟอร์ม", () => {
 })
 
 describe("US-16 การตรวจฟอร์มหลายพอร์ต", () => {
-  const named = (name: string, assets: PortfolioRow[]) => ({ name, assets })
+  const named = (name: string, assets: PortfolioRow[]) => makePortfolio({ name, assets })
 
   test("AC-CMP-06 ข้อความชี้ไปที่พอร์ตที่ผิดจริง พอร์ตอื่นไม่ขึ้นข้อความ", () => {
     const issues = check(
@@ -259,5 +259,76 @@ describe("US-05 ตัวช่วยของฟอร์ม", () => {
         { symbol: "", weight: "999" },
       ]),
     ).toBe(60)
+  })
+})
+
+describe("US-18 + US-19 การตรวจเงินเข้าออกและการปรับสมดุล", () => {
+  const withCashflow = (overrides: Partial<NonNullable<BacktestConfig["portfolios"][0]["cashflow"]>>) =>
+    config({
+      portfolios: [
+        makePortfolio({
+          assets: [{ symbol: "VTI", weight: "100" }],
+          cashflow: {
+            direction: "deposit",
+            amount: "200",
+            basis: "fixed",
+            frequency: "monthly",
+            inflationAdjusted: false,
+            allocation: "prorata",
+            ...overrides,
+          },
+        }),
+      ],
+    })
+
+  test("AC-CMP-29 จำนวนต่องวดต้องมากกว่า 0 แจ้ง V-011", () => {
+    expect(check(withCashflow({ amount: "0" })).portfolios[0].portfolio?.code).toBe("V-011")
+    expect(check(withCashflow({ amount: "" })).portfolios[0].portfolio?.code).toBe("V-011")
+    expect(check(withCashflow({ amount: "-50" })).portfolios[0].portfolio?.code).toBe("V-011")
+    expect(check(withCashflow({ amount: "200" })).portfolios[0].portfolio).toBeNull()
+  })
+
+  test("AC-CMP-30 ถอนเป็นเปอร์เซ็นต์ต้องอยู่ระหว่าง 0 ถึง 100 แจ้ง V-014", () => {
+    const percent = (amount: string) =>
+      check(withCashflow({ direction: "withdraw", basis: "percent", amount }))
+
+    expect(percent("120").portfolios[0].portfolio?.code).toBe("V-014")
+    expect(percent("0").portfolios[0].portfolio?.code).toBe("V-014")
+    expect(percent("100").portfolios[0].portfolio).toBeNull()
+    expect(percent("4").portfolios[0].portfolio).toBeNull()
+  })
+
+  test("AC-CMP-39 เกณฑ์การเบี่ยงเบนต้องอยู่ระหว่าง 1 ถึง 50 แจ้ง V-012", () => {
+    const band = (bandPoints: string) =>
+      check(
+        config({
+          portfolios: [
+            makePortfolio({
+              assets: [{ symbol: "VTI", weight: "100" }],
+              rebalance: "bands",
+              bandPoints,
+            }),
+          ],
+        }),
+      )
+
+    expect(band("80").portfolios[0].portfolio?.code).toBe("V-012")
+    expect(band("0").portfolios[0].portfolio?.code).toBe("V-012")
+    expect(band("5").portfolios[0].portfolio).toBeNull()
+  })
+
+  test("เกณฑ์การเบี่ยงเบนไม่ถูกตรวจเมื่อไม่ได้เลือกวิธีนั้น", () => {
+    const issues = check(
+      config({
+        portfolios: [
+          makePortfolio({
+            assets: [{ symbol: "VTI", weight: "100" }],
+            rebalance: "annual",
+            bandPoints: "999",
+          }),
+        ],
+      }),
+    )
+    expect(hasIssues(issues)).toBe(false)
   })
 })
