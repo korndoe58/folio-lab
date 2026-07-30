@@ -13,6 +13,7 @@ import {
   validateConfig,
   type FormIssues,
 } from "@/lib/backtest/validation"
+import { buildAnnualData, buildGrowthData } from "@/lib/backtest/chart-data"
 import { assembleSummary } from "@/lib/backtest/summary"
 import { portfolioReturns } from "@/engine"
 import rfFixture from "@/data/fixtures/rf.json"
@@ -141,9 +142,11 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
             item.month >= portfolio.usedRange!.start && item.month <= portfolio.usedRange!.end,
         )
 
+      const benchmarkReturns = benchmarkSeries.ok ? inRange(benchmarkSeries.series.returns) : []
+
       const summary = assembleSummary({
         portfolio: portfolio.returns,
-        benchmark: benchmarkSeries.ok ? inRange(benchmarkSeries.series.returns) : [],
+        benchmark: benchmarkReturns,
         riskFree: inRange(RISK_FREE),
         amount: target.amount,
       })
@@ -151,6 +154,8 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
       setRun({
         kind: "ready",
         summary,
+        growth: buildGrowthData(portfolio.returns, benchmarkReturns, target.amount),
+        annual: buildAnnualData(portfolio.returns, benchmarkReturns),
         range: portfolio.usedRange,
         benchmarkSymbol: target.benchmark.trim().toUpperCase(),
         clamped: clampedBy,

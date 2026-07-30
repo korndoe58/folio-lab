@@ -4,7 +4,7 @@
 ที่รองรับ **กองทุนรวมไทย / หุ้น SET / US ETF ในพอร์ตเดียว** พร้อมจัดการสกุลเงิน THB/USD
 และมี **AI commentary ภาษาไทย** อธิบายผลการลงทุนเป็นภาษาคน
 
-**Live:** <https://folio-lab-gamma.vercel.app> · **สถานะ:** S5 เสร็จ — ตั้งพอร์ตแล้วเห็นตารางสรุปผลเทียบตลาดครบ 9 ค่าพร้อมคำอธิบายไทย พร้อมเริ่ม S6 (กราฟ)
+**Live:** <https://folio-lab-gamma.vercel.app> · **สถานะ:** S6 เสร็จ — ตารางสรุป + กราฟมูลค่า + ผลตอบแทนรายปี ใช้งานได้จริง ถัดไป S7 (ช่วงขาดทุน + พอร์ตตัวอย่าง)
 
 - [docs/ROADMAP.md](docs/ROADMAP.md) — roadmap + feature breakdown (what/why) ทั้ง 6 เฟส
 - [docs/SESSION-PLAN.md](docs/SESSION-PLAN.md) — แผนลงมือทำ 21 รอบ (session) พร้อมเกณฑ์ปิดรอบ

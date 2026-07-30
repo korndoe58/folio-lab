@@ -65,7 +65,7 @@ export function SummaryTable({ summary, range, benchmarkSymbol }: Props) {
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody data-testid="summary-rows">
             {summary.rows.map((row) => {
               const label = t(`metric.${row.metric}.label`)
               const unavailable = row.portfolio === null

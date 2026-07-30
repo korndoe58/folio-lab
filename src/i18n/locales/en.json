@@ -137,5 +137,20 @@
     "explain": "Show the explanation for {metric}",
     "noDownside": "Cannot be calculated because there are no losing months",
     "ready": "Backtest results are ready"
+  },
+  "chart": {
+    "growthHeading": "Portfolio growth",
+    "annualHeading": "Annual returns",
+    "scaleLabel": "Value axis scale",
+    "scaleLinear": "Linear scale",
+    "scaleLog": "Log scale",
+    "logDisabledHint": "Log scale is unavailable because this period includes zero or negative values",
+    "viewAsTable": "View as a table of year-end values",
+    "startPoint": "Start",
+    "yearColumn": "Year",
+    "monthColumn": "As of",
+    "partialYear": "{count} months of data",
+    "chartAlt": "Everything in this chart is available in the accompanying table",
+    "yearEndCaption": "Portfolio and market value at each year end"
   }
 }

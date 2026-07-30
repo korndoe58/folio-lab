@@ -1,0 +1,135 @@
+"use client"
+
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import type { AnnualData } from "@/lib/backtest/chart-data"
+import { formatPercent, formatPercentAxis } from "@/lib/backtest/format"
+import { useLanguage } from "@/i18n"
+
+type Props = {
+  data: AnnualData
+  benchmarkSymbol: string
+}
+
+/**
+ * ผลตอบแทนรายปีเทียบตัวเทียบ (US-09)
+ * แท่งพอร์ต = ทึบ · แท่งตัวเทียบ = โปร่งมีขอบ — แยกกันได้โดยไม่ต้องพึ่งสี
+ * ตารางแสดงคู่กับกราฟเสมอตาม BR-ANN-02 จึงทำหน้าที่เป็นข้อมูลเทียบเท่าไปในตัว
+ */
+export function AnnualSection({ data, benchmarkSymbol }: Props) {
+  const { t } = useLanguage()
+  const benchmarkLabel = t("summary.benchmarkColumn", { symbol: benchmarkSymbol })
+
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="font-heading text-base leading-snug font-medium">
+          {t("chart.annualHeading")}
+        </h2>
+      </CardHeader>
+
+      <CardContent className="flex flex-col gap-3">
+        <div className="h-56 w-full" data-testid="annual-chart">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data.rows} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+              <XAxis
+                dataKey="year"
+                tick={{ fontSize: 12 }}
+                interval="preserveStartEnd"
+                minTickGap={12}
+                className="fill-muted-foreground"
+                stroke="currentColor"
+              />
+              <YAxis
+                tickFormatter={(value: number) => formatPercentAxis(value)}
+                tick={{ fontSize: 12 }}
+                width={48}
+                className="fill-muted-foreground"
+                stroke="currentColor"
+              />
+              {/* เส้นศูนย์ต้องเห็นชัด เพราะเป็นเส้นแบ่งกำไรกับขาดทุน (BR-ANN-06) */}
+              <ReferenceLine y={0} className="stroke-foreground" strokeWidth={1} />
+              <Tooltip
+                cursor={{ fill: "var(--muted)", opacity: 0.35 }}
+                formatter={(value) => formatPercent(typeof value === "number" ? value : null)}
+                contentStyle={{
+                  background: "var(--popover)",
+                  color: "var(--popover-foreground)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "0.5rem",
+                  fontSize: "0.8rem",
+                }}
+              />
+              <Bar
+                dataKey="portfolio"
+                name={t("summary.portfolioColumn")}
+                fill="var(--primary)"
+                isAnimationActive={false}
+              />
+              <Bar
+                dataKey="benchmark"
+                name={benchmarkLabel}
+                fill="transparent"
+                stroke="var(--muted-foreground)"
+                strokeWidth={1.5}
+                isAnimationActive={false}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[20rem] text-sm">
+            <caption className="sr-only">{t("chart.annualHeading")}</caption>
+            <thead>
+              <tr className="border-b text-left text-xs text-muted-foreground">
+                <th scope="col" className="py-1 pr-3 font-medium">
+                  {t("chart.yearColumn")}
+                </th>
+                <th scope="col" className="py-1 pr-3 text-right font-medium">
+                  {t("summary.portfolioColumn")}
+                </th>
+                <th scope="col" className="py-1 text-right font-medium">
+                  {benchmarkLabel}
+                </th>
+              </tr>
+            </thead>
+            <tbody data-testid="annual-table">
+              {data.rows.map((row) => (
+                <tr key={row.year} className="border-b last:border-0">
+                  <th scope="row" className="py-1 pr-3 text-left font-normal tabular-nums">
+                    {row.year}
+                    {row.portfolioMonths ? (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {t("chart.partialYear", { count: row.portfolioMonths })}
+                      </span>
+                    ) : null}
+                  </th>
+                  <td
+                    className="py-1 pr-3 text-right tabular-nums"
+                    data-testid={`annual-${row.year}`}
+                  >
+                    {formatPercent(row.portfolio)}
+                  </td>
+                  <td className="py-1 text-right tabular-nums text-muted-foreground">
+                    {formatPercent(row.benchmark)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}

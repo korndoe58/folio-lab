@@ -48,7 +48,8 @@ test.describe("US-07 ตารางสรุปผล", () => {
       timeout: 15_000,
     })
 
-    const labels = await page.locator("tbody tr th").allInnerTexts()
+    // เจาะจงตารางสรุป เพราะหน้าเดียวกันมีตารางของกราฟอีกสองตาราง
+    const labels = await page.getByTestId("summary-rows").locator("tr th").allInnerTexts()
     expect(labels.map((l) => l.trim())).toEqual([
       "เงินตั้งต้น",
       "มูลค่าสุดท้าย",

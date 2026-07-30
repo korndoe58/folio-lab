@@ -61,7 +61,7 @@
 **กฎที่ตารางนี้บังคับ:** ไม่มีหน้าจอไหนคำนวณค่าเองแม้แต่ค่าเดียว และไม่มีหน้าจอไหนเรียกแหล่งข้อมูลตรง
 ทุกอย่างผ่านชั้นข้อมูลและชั้นคำนวณของ [epic foundation](../foundation/epic.md)
 
-ทุกหน้าใช้ส่วนหัวร่วมเดียวกัน (ชื่อแอป + ปุ่มสลับภาษา) ที่มีมาตั้งแต่การวางโครง — ส่วนหัวเป็น adopter
+ทุกหน้าใช้ส่วนหัวร่วมเดียวกัน (ชื่อแอป + ปุ่มสลับโหมดสว่าง/มืด + ปุ่มสลับภาษา) ที่มีมาตั้งแต่การวางโครง — ส่วนหัวเป็น adopter
 ร่วมของทุก story การแก้มันคือการแก้ระดับ pattern ตามกฎ parity sweep
 
 ## §6 ลำดับการทำงาน (Flow)
@@ -82,8 +82,8 @@
 | US-05 | ตั้งค่าพอร์ตที่จะทดสอบ | P0 | S4 | ✅ Done | [`./US-05-portfolio-config-form.md`](./US-05-portfolio-config-form.md) |
 | US-06 | เก็บค่าที่ตั้งไว้ในลิงก์ | P0 | S4 | ✅ Done | [`./US-06-url-state.md`](./US-06-url-state.md) |
 | US-07 | ดูผลสรุปเทียบกับตลาด | P0 | S5 | ✅ Done | [`./US-07-run-summary-metrics.md`](./US-07-run-summary-metrics.md) |
-| US-08 | ดูเส้นมูลค่าพอร์ตตลอดช่วง | P1 | S6 | 🟢 Ready | [`./US-08-growth-chart.md`](./US-08-growth-chart.md) |
-| US-09 | ดูผลตอบแทนรายปี | P1 | S6 | 🟢 Ready | [`./US-09-annual-returns.md`](./US-09-annual-returns.md) |
+| US-08 | ดูเส้นมูลค่าพอร์ตตลอดช่วง | P1 | S6 | ✅ Done | [`./US-08-growth-chart.md`](./US-08-growth-chart.md) |
+| US-09 | ดูผลตอบแทนรายปี | P1 | S6 | ✅ Done | [`./US-09-annual-returns.md`](./US-09-annual-returns.md) |
 | US-10 | ดูช่วงขาดทุนและเวลาฟื้น | P1 | S7 | 🟢 Ready | [`./US-10-drawdowns.md`](./US-10-drawdowns.md) |
 | US-11 | เริ่มจากพอร์ตตัวอย่าง | P1 | S7 | 🟢 Ready | [`./US-11-demo-portfolios-landing.md`](./US-11-demo-portfolios-landing.md) |
 
@@ -132,6 +132,7 @@
 | v1.0 | 2026-07-29 | PO (AI ช่วยร่าง) | epic shell แรก (S1) |
 | v1.1 | 2026-07-29 | PO (AI ช่วยร่าง) | ปิดผล audit S1 ครบ 21 จุด (PD-004, PD-005) + promote เป็น 🟢 Ready |
 | v1.2 | 2026-07-29 | PO (AI ช่วยร่าง) | S4 ปิด US-05 และ US-06 — ฟอร์มและลิงก์ใช้งานได้จริงบน route |
+| v1.3 | 2026-07-30 | PO (AI ช่วยร่าง) | S6 ปิด US-08 และ US-09 — กราฟเส้นมูลค่าและผลตอบแทนรายปีขึ้นจอครบ |
 
 ---
 
