@@ -71,7 +71,8 @@
   },
   "error": {
     "dataLoad": "Could not load price data. Please try again",
-    "noOverlap": "The holdings have no overlapping period with data. Adjust the period or change the holdings"
+    "noOverlap": "The holdings have no overlapping period with data. Adjust the period or change the holdings",
+    "fxLoad": "Could not load exchange rates, so a portfolio with more than one currency cannot be calculated. Please try again"
   },
   "months": {
     "1": "January",

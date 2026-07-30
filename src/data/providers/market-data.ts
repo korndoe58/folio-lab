@@ -14,7 +14,13 @@ import type { ReturnsCache } from "@/data/cache/types"
 import { normalizeToMonthlyReturns } from "./normalize"
 import type { RawPriceSource } from "./raw-source"
 
-const SYMBOL_PATTERN = /^[A-Z][A-Z0-9.-]{0,9}$/
+/**
+ * รูปแบบสัญลักษณ์ที่ชั้นข้อมูลยอมรับ — สินทรัพย์ทั่วไป หรือคู่สกุลเงิน (เช่น `THB=X`)
+ *
+ * กว้างกว่ากฎของฟอร์มโดยตั้งใจ เพราะกฎของฟอร์มคุมสิ่งที่**ผู้ใช้พิมพ์เข้ามาเป็นสินทรัพย์ในพอร์ต**
+ * ส่วนกฎนี้คุมสิ่งที่**ระบบขอจากแหล่งข้อมูลได้** ซึ่งรวมอัตราแลกเปลี่ยนที่ระบบเรียกเองเบื้องหลัง
+ */
+const SYMBOL_PATTERN = /^([A-Z][A-Z0-9.-]{0,9}|[A-Z]{3}=X)$/
 const DEFAULT_TIMEOUT_MS = 10_000
 
 export type MarketDataOptions = {

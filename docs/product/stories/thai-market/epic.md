@@ -81,7 +81,7 @@
 
 | US | ชื่อ | Priority | Session | Status | การ์ด |
 | --- | --- | --- | --- | --- | --- |
-| US-12 | แปลงผลตอบแทนให้เป็นสกุลเงินเดียวกัน | P0 | S10 | 🟢 Ready | [`./US-12-currency-conversion.md`](./US-12-currency-conversion.md) |
+| US-12 | แปลงผลตอบแทนให้เป็นสกุลเงินเดียวกัน | P0 | S10 | ✅ Done | [`./US-12-currency-conversion.md`](./US-12-currency-conversion.md) |
 | US-13 | เลือกสกุลเงินฐานของพอร์ต | P0 | S11 | 🟢 Ready | [`./US-13-base-currency.md`](./US-13-base-currency.md) |
 | US-14 | หุ้นไทยใช้ได้เต็มรูปแบบ | P1 | S11 | 🟢 Ready | [`./US-14-thai-stocks.md`](./US-14-thai-stocks.md) |
 | — | กองทุนรวมไทย | — | S13 | ⛔ รอ spike (S12) | ยังไม่เขียน — แหล่งข้อมูลยังไม่ยืนยัน |
@@ -130,6 +130,7 @@
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
 | v1.0 | 2026-07-30 | PO (AI ช่วยร่าง) | epic shell แรก (S9) — ขอบเขตเฉพาะส่วนที่พิสูจน์แหล่งข้อมูลแล้ว ตาม PD-011 |
+| v1.1 | 2026-07-30 | PO (AI ช่วยร่าง) | S10 ปิด US-12 — พอร์ตผสมสกุลเงินคำนวณถูกต้องแล้ว |
 
 ---
 

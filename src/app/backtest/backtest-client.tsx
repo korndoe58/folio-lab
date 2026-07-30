@@ -6,6 +6,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { PortfolioForm } from "@/components/backtest/portfolio-form"
 import { RunStatus, type RunState } from "@/components/backtest/run-status"
 import { getBrowserProvider } from "@/data/providers/browser"
+import { loadPortfolioSeries } from "@/data/market/load-portfolio"
+import type { Currency } from "@/data/currency"
 import { decodeConfig, defaultConfig, encodeConfig, isEmptyParams } from "@/lib/backtest/url"
 import {
   filledRows,
@@ -27,6 +29,12 @@ const LAST_CLOSED_YEAR = Number(LAST_CLOSED_MONTH.split("-")[0])
 
 /** อัตราปราศจากความเสี่ยงชุดที่ freeze ไว้ ใช้คำนวณ Sharpe และ Sortino (BR-ENG-11) */
 const RISK_FREE = rfFixture.returns
+
+/**
+ * สกุลเงินฐานของพอร์ต — รอบนี้ตรึงเป็นดอลลาร์ เพื่อให้ลิงก์ที่แชร์ไปแล้วทั้งหมดได้ผลเท่าเดิม
+ * ตัวเลือกให้ผู้ใช้เปลี่ยนเองเป็นงานของ US-13
+ */
+const BASE_CURRENCY: Currency = "USD"
 
 export function BacktestClient() {
   const params = useSearchParams()
@@ -78,46 +86,42 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
       setRun({ kind: "loading" })
 
       const rows = filledRows(target.assets)
-      const symbols = [...rows.map((r) => r.symbol.trim().toUpperCase()), target.benchmark]
       const range: MonthRange = {
         start: `${target.startYear}-01`,
         end: `${target.endYear}-12`,
       }
 
-      const results = await Promise.all(
-        symbols.map((symbol) => provider.getMonthlySeries(symbol, range)),
-      )
+      // ชั้นข้อมูลดึงและแปลงค่าเงินให้เป็นสกุลเดียวกันมาแล้ว หน้าจอไม่แปลงเอง (BR-THB-03)
+      const loaded = await loadPortfolioSeries({
+        provider,
+        symbols: rows.map((r) => r.symbol.trim().toUpperCase()),
+        benchmark: target.benchmark,
+        range,
+        base: BASE_CURRENCY,
+      })
       if (seq !== runSeq.current) return
 
-      const missing: string[] = []
-      const unreachable: string[] = []
-      results.forEach((result, i) => {
-        if (result.ok) return
-        if (result.failure.kind === "symbol-not-found") missing.push(symbols[i])
-        else unreachable.push(symbols[i])
-      })
-
-      if (unreachable.length > 0) {
+      if (!loaded.ok) {
+        if (loaded.reason === "symbol-not-found") {
+          setUnknownSymbols((prev) => new Set([...prev, ...loaded.symbols]))
+          setRun({ kind: "idle" })
+          return
+        }
         setRun({
           kind: "error",
-          messageKey: "error.dataLoad",
-          params: { symbol: unreachable.join(", ") },
+          messageKey: loaded.reason === "fx-unreachable" ? "error.fxLoad" : "error.dataLoad",
+          params:
+            loaded.reason === "unreachable" ? { symbol: loaded.symbols.join(", ") } : undefined,
           retryable: true,
         })
-        return
-      }
-      if (missing.length > 0) {
-        setUnknownSymbols((prev) => new Set([...prev, ...missing]))
-        setRun({ kind: "idle" })
         return
       }
 
       const assets = rows.map((row, i) => ({
         symbol: row.symbol.trim().toUpperCase(),
         weight: Number(row.weight),
-        returns: results[i].ok ? results[i].series.returns : [],
+        returns: loaded.assets[i].returns,
       }))
-      const benchmarkSeries = results[results.length - 1]
       const portfolio = portfolioReturns(assets)
 
       if (!portfolio.usedRange || portfolio.returns.length === 0) {
@@ -142,7 +146,7 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
             item.month >= portfolio.usedRange!.start && item.month <= portfolio.usedRange!.end,
         )
 
-      const benchmarkReturns = benchmarkSeries.ok ? inRange(benchmarkSeries.series.returns) : []
+      const benchmarkReturns = inRange(loaded.benchmark)
 
       const summary = assembleSummary({
         portfolio: portfolio.returns,
