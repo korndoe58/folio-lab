@@ -1,10 +1,10 @@
 "use client"
 
 import { Plus, X } from "lucide-react"
-import { useId } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ComboboxField } from "@/components/backtest/combobox-field"
 import { SUGGESTED_SYMBOLS } from "@/lib/backtest/suggested-symbols"
 import { evenWeights, weightSum, type FormIssues, type ValidationIssue } from "@/lib/backtest/validation"
 import { emptyRow } from "@/lib/backtest/url"
@@ -36,22 +36,33 @@ type Props = {
   issues: FormIssues
   checkingSymbols: boolean
   submitting: boolean
+  lastClosedYear: number
   onChange: (next: BacktestConfig) => void
   onSubmit: () => void
   onSymbolBlur: (symbol: string) => void
 }
+
+/** จำนวนปีย้อนหลังที่เสนอในรายการเลือกปี (พิมพ์ปีอื่นเองได้เสมอ) */
+const YEAR_CHOICES = 30
 
 export function PortfolioForm({
   config,
   issues,
   checkingSymbols,
   submitting,
+  lastClosedYear,
   onChange,
   onSubmit,
   onSymbolBlur,
 }: Props) {
   const { t } = useLanguage()
-  const listId = useId()
+
+  const symbolItems = SUGGESTED_SYMBOLS.map((item) => item.symbol)
+  const describeSymbol = (symbol: string) => {
+    const match = SUGGESTED_SYMBOLS.find((item) => item.symbol === symbol)
+    return match ? t(match.labelKey) : undefined
+  }
+  const yearItems = Array.from({ length: YEAR_CHOICES }, (_, i) => String(lastClosedYear - i))
 
   const updateRow = (index: number, patch: Partial<{ symbol: string; weight: string }>) => {
     const assets = config.assets.map((row, i) => (i === index ? { ...row, ...patch } : row))
@@ -79,14 +90,6 @@ export function PortfolioForm({
         onSubmit()
       }}
     >
-      <datalist id={listId}>
-        {SUGGESTED_SYMBOLS.map((item) => (
-          <option key={item.symbol} value={item.symbol}>
-            {t(item.labelKey)}
-          </option>
-        ))}
-      </datalist>
-
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-2 text-sm font-medium">{t("form.assets")}</legend>
 
@@ -100,15 +103,17 @@ export function PortfolioForm({
                   <Label htmlFor={`symbol-${index}`} className="text-xs text-muted-foreground">
                     {t("form.symbol")}
                   </Label>
-                  <Input
+                  <ComboboxField
                     id={`symbol-${index}`}
-                    list={listId}
                     value={row.symbol}
+                    items={symbolItems}
+                    describe={describeSymbol}
+                    emptyLabel={t("form.symbolFreeText")}
                     placeholder={t("form.symbolPlaceholder")}
-                    aria-invalid={message !== null}
-                    aria-describedby={message ? errorId : undefined}
-                    onChange={(e) => updateRow(index, { symbol: e.target.value })}
-                    onBlur={(e) => onSymbolBlur(e.target.value)}
+                    invalid={message !== null}
+                    describedBy={message ? errorId : undefined}
+                    onValueChange={(value) => updateRow(index, { symbol: value })}
+                    onBlur={onSymbolBlur}
                   />
                 </div>
                 <div className="w-28">
@@ -177,27 +182,33 @@ export function PortfolioForm({
           inputMode="numeric"
           onChange={(value) => onChange({ ...config, amount: Number(value) })}
         />
-        <Field
+        <ComboboxFieldRow
           id="benchmark"
           label={t("form.benchmark")}
           value={config.benchmark}
+          items={symbolItems}
+          describe={describeSymbol}
+          emptyLabel={t("form.symbolFreeText")}
           message={issueMessage(issues.benchmark, t)}
-          listId={listId}
           onChange={(value) => onChange({ ...config, benchmark: value })}
           onBlur={onSymbolBlur}
         />
-        <Field
+        <ComboboxFieldRow
           id="startYear"
           label={t("form.startYear")}
           value={String(config.startYear)}
+          items={yearItems}
+          emptyLabel={t("form.yearFreeText")}
           message={issueMessage(issues.startYear, t)}
           inputMode="numeric"
           onChange={(value) => onChange({ ...config, startYear: Number(value) })}
         />
-        <Field
+        <ComboboxFieldRow
           id="endYear"
           label={t("form.endYear")}
           value={String(config.endYear)}
+          items={yearItems}
+          emptyLabel={t("form.yearFreeText")}
           message={issueMessage(issues.endYear, t)}
           inputMode="numeric"
           onChange={(value) => onChange({ ...config, endYear: Number(value) })}
@@ -228,12 +239,11 @@ type FieldProps = {
   value: string
   message: string | null
   inputMode?: "numeric" | "decimal"
-  listId?: string
   onChange: (value: string) => void
   onBlur?: (value: string) => void
 }
 
-function Field({ id, label, value, message, inputMode, listId, onChange, onBlur }: FieldProps) {
+function Field({ id, label, value, message, inputMode, onChange, onBlur }: FieldProps) {
   const errorId = `${id}-error`
   return (
     <div className="flex flex-col gap-1">
@@ -242,13 +252,57 @@ function Field({ id, label, value, message, inputMode, listId, onChange, onBlur 
       </Label>
       <Input
         id={id}
-        list={listId}
         inputMode={inputMode}
         value={value}
         aria-invalid={message !== null}
         aria-describedby={message ? errorId : undefined}
         onChange={(e) => onChange(e.target.value)}
         onBlur={(e) => onBlur?.(e.target.value)}
+      />
+      {message ? (
+        <p id={errorId} role="alert" className="text-xs text-destructive">
+          {message}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+type ComboboxRowProps = FieldProps & {
+  items: readonly string[]
+  emptyLabel: string
+  describe?: (item: string) => string | undefined
+}
+
+function ComboboxFieldRow({
+  id,
+  label,
+  value,
+  items,
+  emptyLabel,
+  describe,
+  message,
+  inputMode,
+  onChange,
+  onBlur,
+}: ComboboxRowProps) {
+  const errorId = `${id}-error`
+  return (
+    <div className="flex flex-col gap-1">
+      <Label htmlFor={id} className="text-xs text-muted-foreground">
+        {label}
+      </Label>
+      <ComboboxField
+        id={id}
+        value={value}
+        items={items}
+        describe={describe}
+        emptyLabel={emptyLabel}
+        inputMode={inputMode}
+        invalid={message !== null}
+        describedBy={message ? errorId : undefined}
+        onValueChange={onChange}
+        onBlur={onBlur}
       />
       {message ? (
         <p id={errorId} role="alert" className="text-xs text-destructive">

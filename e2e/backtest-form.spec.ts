@@ -13,9 +13,19 @@ const submit = (page: Page) => page.getByRole("button", { name: "เริ่ม
 /** ผลลัพธ์พร้อมแล้ว — ตั้งแต่ US-07 เป็นต้นไปคือตารางสรุป (เดิมเป็นแถบช่วงเวลาขั้นต่ำ) */
 const resultsReady = (page: Page) => page.getByRole("heading", { name: "สรุปผลการทดสอบ" })
 
+/**
+ * กรอกช่องที่มีรายการแนะนำ แล้วปิดรายการเหมือนที่ผู้ใช้ทำก่อนไปทำอย่างอื่นต่อ —
+ * ขณะรายการเปิดอยู่ ส่วนที่เหลือของฟอร์มถูกกันไว้จากโปรแกรมอ่านหน้าจอ ซึ่งเป็นพฤติกรรมมาตรฐาน
+ * ของช่องกรอกแบบมีรายการเลือก (ช่องที่กำลังพิมพ์และรายการยังเข้าถึงได้ตามปกติ)
+ */
+async function fillSuggestion(field: ReturnType<typeof symbol>, page: Page, value: string) {
+  await field.fill(value)
+  await page.keyboard.press("Escape")
+}
+
 async function fillPortfolio(page: Page, rows: Array<[string, string]>) {
   for (const [index, [sym, w]] of rows.entries()) {
-    await symbol(page, index).fill(sym)
+    await fillSuggestion(symbol(page, index), page, sym)
     await weight(page, index).fill(w)
   }
 }
@@ -76,7 +86,7 @@ test.describe("US-05 ฟอร์มตั้งค่าพอร์ต", () =>
 
     // V-010 สัญลักษณ์ซ้ำ
     await weight(page, 1).fill("40")
-    await symbol(page, 1).fill("VTI")
+    await fillSuggestion(symbol(page, 1), page, "VTI")
     await submit(page).click()
     await expect(page.getByText("สัญลักษณ์นี้มีอยู่ในพอร์ตแล้ว")).toBeVisible()
 
@@ -88,21 +98,21 @@ test.describe("US-05 ฟอร์มตั้งค่าพอร์ต", () =>
     })
 
     // V-006 เงินตั้งต้นเป็น 0
-    await symbol(page, 1).fill("BND")
+    await fillSuggestion(symbol(page, 1), page, "BND")
     await page.locator("#amount").fill("0")
     await submit(page).click()
     await expect(page.getByText("เงินตั้งต้นต้องเป็นตัวเลขที่มากกว่า 0")).toBeVisible()
 
     // V-004 ปีสลับกัน
     await page.locator("#amount").fill("10000")
-    await page.locator("#startYear").fill("2020")
-    await page.locator("#endYear").fill("2015")
+    await fillSuggestion(page.locator("#startYear"), page, "2020")
+    await fillSuggestion(page.locator("#endYear"), page, "2015")
     await submit(page).click()
     await expect(page.getByText("ปีเริ่มต้นต้องไม่มากกว่าปีสิ้นสุด")).toBeVisible()
 
-    // V-005 ปีสิ้นสุดเกินข้อมูลที่มี
-    await page.locator("#startYear").fill("2015")
-    await page.locator("#endYear").fill("2030")
+    // V-005 ปีสิ้นสุดเกินข้อมูลที่มี (พิมพ์ปีนอกรายการเองได้)
+    await fillSuggestion(page.locator("#startYear"), page, "2015")
+    await fillSuggestion(page.locator("#endYear"), page, "2030")
     await submit(page).click()
     await expect(
       page.getByText("เลือกช่วงเวลาได้ถึง มิถุนายน 2026 ซึ่งเป็นเดือนล่าสุดที่มีข้อมูลครบ"),

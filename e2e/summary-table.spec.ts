@@ -113,6 +113,7 @@ test.describe("US-07 ตารางสรุปผล", () => {
     })
 
     await page.locator("#symbol-0").fill("SPY")
+    await page.keyboard.press("Escape") // ปิดรายการแนะนำก่อนไปกดตัวควบคุมอื่น
     await page.locator("#weight-0").fill("100")
     for (const index of [3, 2, 1]) {
       await page.getByRole("button", { name: "ลบสินทรัพย์แถวนี้" }).nth(index).click()

@@ -30,7 +30,9 @@
     "submitting": "Running",
     "checking": "Checking",
     "weightTotal": "Total {sum}%",
-    "suggested": "Commonly used symbols"
+    "suggested": "Commonly used symbols",
+    "symbolFreeText": "Not in the suggestions. You can type any symbol",
+    "yearFreeText": "Not in the list. You can type any year"
   },
   "symbols": {
     "vti": "Total US stock market",

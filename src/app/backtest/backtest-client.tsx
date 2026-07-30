@@ -249,6 +249,7 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
         issues={shownIssues}
         checkingSymbols={checking}
         submitting={run.kind === "loading"}
+        lastClosedYear={LAST_CLOSED_YEAR}
         onChange={setConfig}
         onSubmit={handleSubmit}
         onSymbolBlur={handleSymbolBlur}
