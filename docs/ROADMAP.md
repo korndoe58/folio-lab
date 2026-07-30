@@ -3,7 +3,7 @@
 > เครื่องมือ Backtest พอร์ตลงทุนแนว [Portfolio Visualizer](https://www.portfoliovisualizer.com/backtest-portfolio)
 > ที่รองรับ **กองทุนรวมไทย/หุ้นไทย + พอร์ตผสม USD/THB** และมี **AI layer** อธิบายพอร์ตเป็นภาษาคน
 
-- **สถานะ:** 🟢 Roadmap อนุมัติแล้ว — ยังไม่เริ่ม Phase 0
+- **สถานะ:** ✅ เฟส 0 และ 1 เสร็จแล้ว (ใช้งานจริงที่ folio-lab-gamma.vercel.app) — ถัดไปเฟส 2
 - **วันที่เขียน:** 2026-07-28
 - **เจ้าของ:** Supakorn Rattanapet
 - **บทบาทของ project:** (1) Portfolio piece ประกอบการสมัครงานสาย AI Builder (2) เครื่องมือ backtest ใช้เองจริง
