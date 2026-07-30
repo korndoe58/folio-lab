@@ -10,6 +10,9 @@
     "switch": "ไทย",
     "label": "Switch language"
   },
+  "theme": {
+    "label": "Toggle light and dark mode"
+  },
   "form": {
     "heading": "Set up the portfolio to test",
     "assets": "Portfolio holdings",

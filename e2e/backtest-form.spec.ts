@@ -263,13 +263,24 @@ test.describe("US-06 ค่าที่ตั้งไว้อยู่ใน�
 })
 
 test.describe("การแสดงผลในสภาพแวดล้อมจริง", () => {
-  test("โหมดมืดและจอแคบ", async ({ browser }) => {
-    const dark = await browser.newContext({ colorScheme: "dark" })
-    const darkPage = await dark.newPage()
-    await darkPage.goto(FULL_LINK)
-    await expect(resultsReady(darkPage)).toBeVisible({ timeout: 10_000 })
-    await darkPage.screenshot({ path: `${EVIDENCE}/run-success-dark.png`, fullPage: true })
-    await dark.close()
+  test("ปุ่มสลับโหมด ค่าเริ่มต้นสว่าง และจอแคบ", async ({ page, browser }) => {
+    await page.goto(FULL_LINK)
+    await expect(resultsReady(page)).toBeVisible({ timeout: 10_000 })
+
+    // ค่าเริ่มต้นคือโหมดสว่างเสมอ ไม่ขึ้นกับการตั้งค่าของเครื่อง
+    await expect(page.locator("html")).not.toHaveClass(/dark/)
+
+    const themeToggle = page.getByRole("button", { name: "สลับโหมดสว่างและมืด" })
+    await themeToggle.click()
+    await expect(page.locator("html")).toHaveClass(/dark/)
+    await page.screenshot({ path: `${EVIDENCE}/run-success-dark.png`, fullPage: true })
+
+    // เลือกไว้แล้วต้องจำได้เมื่อเปิดหน้าใหม่
+    await page.reload()
+    await expect(page.locator("html")).toHaveClass(/dark/)
+
+    await themeToggle.click()
+    await expect(page.locator("html")).not.toHaveClass(/dark/)
 
     const mobile = await browser.newContext({ viewport: { width: 375, height: 812 } })
     const mobilePage = await mobile.newPage()

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { useLanguage } from "@/i18n"
 
 /**
@@ -16,14 +17,17 @@ export function SiteHeader() {
       <Link href="/" className="font-mono text-sm text-muted-foreground hover:text-foreground">
         {t("app.title")}
       </Link>
-      <Button
-        variant="ghost"
-        size="sm"
-        aria-label={t("lang.label")}
-        onClick={() => setLang(lang === "th" ? "en" : "th")}
-      >
-        {t("lang.switch")}
-      </Button>
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={t("lang.label")}
+          onClick={() => setLang(lang === "th" ? "en" : "th")}
+        >
+          {t("lang.switch")}
+        </Button>
+      </div>
     </header>
   )
 }

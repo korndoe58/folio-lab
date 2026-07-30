@@ -32,7 +32,12 @@ export default function RootLayout({
       className={`${notoSansThai.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
           <LanguageProvider>{children}</LanguageProvider>
         </ThemeProvider>
       </body>

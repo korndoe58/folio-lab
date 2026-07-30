@@ -134,13 +134,12 @@ test.describe("US-07 ตารางสรุปผล", () => {
     await expect(page.getByText("ช่วงเวลาถูกปรับเป็น", { exact: false })).toBeVisible()
   })
 
-  test("จอแคบและโหมดมืด", async ({ browser }) => {
-    const dark = await browser.newContext({ colorScheme: "dark" })
-    const darkPage = await dark.newPage()
-    await darkPage.goto(REFERENCE_LINK)
-    await expect(darkPage.getByTestId("portfolio-cagr")).toHaveText("10.31%", { timeout: 15_000 })
-    await darkPage.screenshot({ path: `${EVIDENCE}/summary-dark.png`, fullPage: true })
-    await dark.close()
+  test("จอแคบและโหมดมืด", async ({ page, browser }) => {
+    await page.goto(REFERENCE_LINK)
+    await expect(page.getByTestId("portfolio-cagr")).toHaveText("10.31%", { timeout: 15_000 })
+    await page.getByRole("button", { name: "สลับโหมดสว่างและมืด" }).click()
+    await expect(page.locator("html")).toHaveClass(/dark/)
+    await page.screenshot({ path: `${EVIDENCE}/summary-dark.png`, fullPage: true })
 
     const mobile = await browser.newContext({ viewport: { width: 375, height: 812 } })
     const mobilePage = await mobile.newPage()
