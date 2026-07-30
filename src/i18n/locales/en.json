@@ -40,7 +40,15 @@
     "currencyFixed": "Thai baht or US dollars only",
     "symbolThaiHint": "For Thai stocks add .BK to the ticker, e.g. PTT.BK",
     "inflationAdjusted": "Adjust returns for inflation",
-    "inflationAdjustedHint": "Always uses Thai inflation, whichever currency you view results in, and only yearly figures can be adjusted"
+    "inflationAdjustedHint": "Always uses Thai inflation, whichever currency you view results in, and only yearly figures can be adjusted",
+    "portfolioName": "Portfolio name",
+    "portfolioDefaultName": "Portfolio {index}",
+    "addPortfolio": "Add a portfolio to compare",
+    "addPortfolioDisabled": "Up to {max} portfolios",
+    "removePortfolio": "Remove {name}",
+    "removePortfolioShort": "Remove",
+    "removePortfolioDisabled": "At least one portfolio is required",
+    "sharedSettings": "Settings shared by every portfolio"
   },
   "symbols": {
     "vti": "Total US stock market",
@@ -74,7 +82,8 @@
     "weightRange": "Each weight must be a number between 0 and 100",
     "linkInvalid": "This link has incomplete or invalid settings. Please set up the portfolio again",
     "rangeTooShort": "The selected period is too short. At least 2 months of data are needed, so try widening it",
-    "symbolDuplicate": "This symbol is already in the portfolio"
+    "symbolDuplicate": "This symbol is already in the portfolio",
+    "portfolioNameDuplicate": "Two portfolios share a name. Give them different names so the results are easier to read"
   },
   "notice": {
     "rangeClamped": "The period was adjusted to {start} to {end} based on the data available for {symbol}",
@@ -184,7 +193,8 @@
     "foundFew": "{count} drawdowns in total",
     "none": "No drawdowns in the selected period. The portfolio never fell below a previous peak",
     "months": "{count} months",
-    "years": "{count} years"
+    "years": "{count} years",
+    "headingFor": "Drawdowns for {name}"
   },
   "demo": {
     "heading": "Start from an example portfolio",

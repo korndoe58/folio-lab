@@ -12,11 +12,12 @@ import {
   filledRows,
   hasIssues,
   validateConfig,
+  NO_ISSUES,
   type FormIssues,
 } from "@/lib/backtest/validation"
 import { buildAnnualData, buildDrawdownData, buildGrowthData } from "@/lib/backtest/chart-data"
 import { assembleSummary } from "@/lib/backtest/summary"
-import { portfolioReturns } from "@/engine"
+import { commonRange, portfolioReturns } from "@/engine"
 import cpiFixture from "@/data/fixtures/th-cpi.json"
 import rfFixture from "@/data/fixtures/rf.json"
 import { useLanguage } from "@/i18n"
@@ -82,16 +83,21 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
       const seq = ++runSeq.current
       setRun({ kind: "loading" })
 
-      const rows = filledRows(target.assets)
+      const rowsPerPortfolio = target.portfolios.map((p) => filledRows(p.assets))
       const range: MonthRange = {
         start: `${target.startYear}-01`,
         end: `${target.endYear}-12`,
       }
 
+      // สัญลักษณ์เดียวกันที่อยู่ในหลายพอร์ตดึงรอบเดียว (BR-CMP-06)
+      const symbols = [
+        ...new Set(rowsPerPortfolio.flat().map((r) => r.symbol.trim().toUpperCase())),
+      ]
+
       // ชั้นข้อมูลดึงและแปลงค่าเงินให้เป็นสกุลเดียวกันมาแล้ว หน้าจอไม่แปลงเอง (BR-THB-03)
       const loaded = await loadPortfolioSeries({
         provider,
-        symbols: rows.map((r) => r.symbol.trim().toUpperCase()),
+        symbols,
         benchmark: target.benchmark,
         range,
         base: target.baseCurrency,
@@ -114,40 +120,52 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
         return
       }
 
-      const assets = rows.map((row, i) => ({
-        symbol: row.symbol.trim().toUpperCase(),
-        weight: Number(row.weight),
-        returns: loaded.assets[i].returns,
-      }))
-      const portfolio = portfolioReturns(assets)
+      const holdings = rowsPerPortfolio.map((rows) =>
+        rows.map((row) => {
+          const symbol = row.symbol.trim().toUpperCase()
+          return { symbol, weight: Number(row.weight), returns: loaded.bySymbol.get(symbol) ?? [] }
+        }),
+      )
 
-      if (!portfolio.usedRange || portfolio.returns.length === 0) {
+      /**
+       * ช่วงเวลาร่วมต้องตัดสิน **ก่อน** คำนวณพอร์ต ไม่ใช่ตัดผลลัพธ์ทีหลัง (BR-CMP-04)
+       * เพราะน้ำหนักลอยและถูกดึงกลับตามรอบ — ตัดทีหลังจะได้ค่าของพอร์ตที่น้ำหนักลอยมา
+       * จากเดือนที่ไม่ได้อยู่ในช่วงร่วม ซึ่งไม่ใช่คำตอบของคำถามที่ผู้ใช้ถาม
+       */
+      const shared = commonRange(holdings.flat())
+      if (!shared) {
         setRun({ kind: "error", messageKey: "error.noOverlap", retryable: false })
         return
       }
-      if (portfolio.returns.length < 2) {
+
+      const inRange = (series: { month: string; value: number }[]) =>
+        series.filter((item) => item.month >= shared.range.start && item.month <= shared.range.end)
+
+      const results = holdings.map((assets) =>
+        portfolioReturns(assets.map((a) => ({ ...a, returns: inRange(a.returns) }))),
+      )
+
+      if (results.some((r) => !r.usedRange || r.returns.length === 0)) {
+        setRun({ kind: "error", messageKey: "error.noOverlap", retryable: false })
+        return
+      }
+      if (results[0].returns.length < 2) {
         setRun({ kind: "error", messageKey: "validation.rangeTooShort", retryable: false })
         return
       }
 
       const askedStart = `${target.startYear}-01`
       const clampedBy =
-        portfolio.usedRange.start > askedStart && portfolio.limitedBy.length > 0
-          ? { symbol: portfolio.limitedBy[0] }
+        shared.range.start > askedStart && shared.limitedBy.length > 0
+          ? { symbol: shared.limitedBy[0] }
           : undefined
 
-      // ตัดตัวเทียบและอัตราปราศจากความเสี่ยงให้เป็นช่วงเดียวกับพอร์ต ไม่งั้นเป็นการเทียบคนละช่วง
-      const inRange = (series: { month: string; value: number }[]) =>
-        series.filter(
-          (item) =>
-            item.month >= portfolio.usedRange!.start && item.month <= portfolio.usedRange!.end,
-        )
-
+      const portfolioSeries = results.map((r) => r.returns)
       const benchmarkReturns = inRange(loaded.benchmark)
       const inflation = { rates: INFLATION_RATES, enabled: target.inflationAdjusted }
 
       const summary = assembleSummary({
-        portfolio: portfolio.returns,
+        portfolios: portfolioSeries,
         benchmark: benchmarkReturns,
         riskFree: inRange(RISK_FREE),
         amount: target.amount,
@@ -162,10 +180,11 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
         currency: target.baseCurrency,
         converted: loaded.converted,
         inflationAdjusted: target.inflationAdjusted,
-        growth: buildGrowthData(portfolio.returns, benchmarkReturns, target.amount),
-        annual: buildAnnualData(portfolio.returns, benchmarkReturns, inflation),
-        drawdown: buildDrawdownData(portfolio.returns, benchmarkReturns),
-        range: portfolio.usedRange,
+        portfolioNames: target.portfolios.map((p) => p.name),
+        growth: buildGrowthData(portfolioSeries, benchmarkReturns, target.amount),
+        annual: buildAnnualData(portfolioSeries, benchmarkReturns, inflation),
+        drawdown: buildDrawdownData(portfolioSeries, benchmarkReturns),
+        range: shared.range,
         benchmarkSymbol: target.benchmark.trim().toUpperCase(),
         clamped: clampedBy,
       })
@@ -246,7 +265,7 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
             ? { code: "V-005", params: { lastMonth: lastClosedLabel } }
             : issues.endYear,
       }
-    : { rows: [], startYear: null, endYear: null, amount: null, benchmark: null, form: null }
+    : NO_ISSUES
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">

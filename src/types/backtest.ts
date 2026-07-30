@@ -6,8 +6,18 @@ export type PortfolioRow = {
   weight: string
 }
 
-export type BacktestConfig = {
+/**
+ * หนึ่งพอร์ตในการเทียบ (BR-CMP-15, BR-CMP-16)
+ * ชื่อว่างหมายถึงยังไม่ได้ตั้งเอง — หน้าจอเติมชื่อปริยายให้ตามลำดับ
+ */
+export type PortfolioSpec = {
+  name: string
   assets: PortfolioRow[]
+}
+
+export type BacktestConfig = {
+  /** 1 ถึง 3 พอร์ตที่กำลังเทียบกัน (BR-CMP-01) */
+  portfolios: PortfolioSpec[]
   startYear: number
   endYear: number
   amount: number
@@ -18,9 +28,13 @@ export type BacktestConfig = {
   inflationAdjusted: boolean
 }
 
-/** ขอบเขตของฟอร์มตาม BR-CFG-02, BR-CFG-08 */
+/** ขอบเขตของฟอร์มตาม BR-CFG-02, BR-CFG-08 — ใช้กับทุกพอร์ตแยกกัน (BR-CMP-18) */
 export const MIN_ASSETS = 1
 export const MAX_ASSETS = 10
+/** เทียบได้ 1 ถึง 3 พอร์ต — เกินสามชุดกราฟอ่านไม่ออกและตารางล้นจอแคบ (BR-CMP-01) */
+export const MIN_PORTFOLIOS = 1
+export const MAX_PORTFOLIOS = 3
+export const MAX_PORTFOLIO_NAME = 20
 export const MIN_AMOUNT = 1
 export const MAX_AMOUNT = 1_000_000_000
 export const DEFAULT_AMOUNT = 10_000

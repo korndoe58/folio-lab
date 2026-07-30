@@ -7,8 +7,11 @@ import {
   DEFAULT_YEARS_BACK,
   LEGACY_LINK_CURRENCY,
   MAX_ASSETS,
+  MAX_PORTFOLIOS,
+  MAX_PORTFOLIO_NAME,
   type BacktestConfig,
   type PortfolioRow,
+  type PortfolioSpec,
 } from "@/types/backtest"
 import type { Currency } from "@/data/currency"
 
@@ -29,7 +32,7 @@ export type UrlParams = {
 
 export function defaultConfig(lastClosedYear: number): BacktestConfig {
   return {
-    assets: [emptyRow(), emptyRow()],
+    portfolios: [emptyPortfolio()],
     startYear: lastClosedYear - DEFAULT_YEARS_BACK,
     endYear: lastClosedYear,
     amount: DEFAULT_AMOUNT,
@@ -43,18 +46,27 @@ export function emptyRow(): PortfolioRow {
   return { symbol: "", weight: "" }
 }
 
+export function emptyPortfolio(): PortfolioSpec {
+  return { name: "", assets: [emptyRow(), emptyRow()] }
+}
+
+/** คีย์ของพอร์ตในลิงก์ — `p1` `p2` `p3` และชื่อที่ `p1.n` (BR-CMP-20) */
+const slotKeys = (slot: number) => ({ assets: `p${slot}`, name: `p${slot}.n` })
+
 /** ลิงก์ไม่มีค่าใดเลยหรือไม่ — กรณีนี้ถือเป็นฟอร์มเปล่าปกติ ไม่ใช่ข้อผิดพลาด (EC-URL-01) */
 export function isEmptyParams(params: UrlParams): boolean {
-  return ["assets", "start", "end", "amount", "benchmark", "base", "real"].every(
-    (k) => params.get(k) === null,
-  )
+  const keys = ["assets", "start", "end", "amount", "benchmark", "base", "real"]
+  for (let slot = 1; slot <= MAX_PORTFOLIOS; slot++) {
+    const { assets, name } = slotKeys(slot)
+    keys.push(assets, name)
+  }
+  return keys.every((k) => params.get(k) === null)
 }
 
 export function decodeConfig(params: UrlParams, lastClosedYear: number): DecodeResult {
   const fallback = defaultConfig(lastClosedYear)
-  const rawAssets = params.get("assets")
+  const parsed = parsePortfolios(params)
 
-  const assets = rawAssets === null ? null : parseAssets(rawAssets)
   const startYear = parseYear(params.get("start"))
   const endYear = parseYear(params.get("end"))
   const amount = parseAmount(params.get("amount"))
@@ -65,7 +77,7 @@ export function decodeConfig(params: UrlParams, lastClosedYear: number): DecodeR
   const real = parseFlag(rawReal)
 
   const config: BacktestConfig = {
-    assets: assets?.rows.length ? assets.rows : fallback.assets,
+    portfolios: parsed.portfolios.length > 0 ? parsed.portfolios : fallback.portfolios,
     startYear: startYear ?? fallback.startYear,
     endYear: endYear ?? fallback.endYear,
     amount: amount ?? fallback.amount,
@@ -77,9 +89,7 @@ export function decodeConfig(params: UrlParams, lastClosedYear: number): DecodeR
   }
 
   const structurallyBroken =
-    (assets?.broken ?? false) ||
-    (rawAssets !== null && assets !== null && assets.rows.length === 0) ||
-    (rawAssets !== null && (assets?.rows.length ?? 0) > MAX_ASSETS) ||
+    parsed.broken ||
     (params.get("start") !== null && startYear === null) ||
     (params.get("end") !== null && endYear === null) ||
     (params.get("amount") !== null && amount === null) ||
@@ -90,25 +100,85 @@ export function decodeConfig(params: UrlParams, lastClosedYear: number): DecodeR
   return structurallyBroken ? { ok: false, partial: config } : { ok: true, config }
 }
 
+/**
+ * เขียนค่าที่ตั้งไว้ลงลิงก์
+ *
+ * พอร์ตเดียวที่ไม่ได้ตั้งชื่อเองยังใช้รูปแบบ `assets=` เดิมทุกตัวอักษร เพื่อให้ลิงก์ที่แชร์ไปแล้ว
+ * และการใช้งานปกติไม่ขยับเลย (BR-CMP-31) · ใช้ `p1..p3` เฉพาะตอนเทียบหลายพอร์ตหรือมีชื่อที่ตั้งเอง
+ */
 export function encodeConfig(config: BacktestConfig): string {
-  const assets = config.assets
-    .filter((row) => row.symbol.trim() !== "")
-    .map((row) => `${row.symbol.trim().toUpperCase()}:${row.weight.trim()}`)
-    .join(",")
+  const query = new URLSearchParams()
+  const named = config.portfolios.some((p) => p.name.trim() !== "")
 
-  const query = new URLSearchParams({
-    assets,
-    start: String(config.startYear),
-    end: String(config.endYear),
-    amount: String(config.amount),
-    benchmark: config.benchmark.trim().toUpperCase(),
-    base: config.baseCurrency,
-  })
+  if (config.portfolios.length === 1 && !named) {
+    query.set("assets", encodeAssets(config.portfolios[0].assets))
+  } else {
+    config.portfolios.forEach((portfolio, index) => {
+      const { assets, name } = slotKeys(index + 1)
+      query.set(assets, encodeAssets(portfolio.assets))
+      if (portfolio.name.trim() !== "") query.set(name, portfolio.name.trim())
+    })
+  }
+
+  query.set("start", String(config.startYear))
+  query.set("end", String(config.endYear))
+  query.set("amount", String(config.amount))
+  query.set("benchmark", config.benchmark.trim().toUpperCase())
+  query.set("base", config.baseCurrency)
   // ใส่เฉพาะตอนเปิด — ลิงก์ที่ไม่ปรับเงินเฟ้อจึงหน้าตาเหมือนเดิมทุกตัวอักษร (BR-INF-02)
   if (config.inflationAdjusted) query.set("real", "1")
 
   // URLSearchParams เข้ารหัส , และ : ซึ่งอ่านยากในแถบที่อยู่ — คืนกลับให้อ่านออก
   return query.toString().replace(/%2C/g, ",").replace(/%3A/g, ":")
+}
+
+function encodeAssets(assets: PortfolioRow[]): string {
+  return assets
+    .filter((row) => row.symbol.trim() !== "")
+    .map((row) => `${row.symbol.trim().toUpperCase()}:${row.weight.trim()}`)
+    .join(",")
+}
+
+type ParsedPortfolios = { portfolios: PortfolioSpec[]; broken: boolean }
+
+/**
+ * อ่านพอร์ตทั้งหมดจากลิงก์ — รองรับทั้งรูปแบบเดิม (`assets`) และรูปแบบหลายพอร์ต (`p1..p3`)
+ *
+ * มีทั้งสองรูปแบบพร้อมกันถือว่าอ่านโครงสร้างไม่ออก เพราะตีความได้สองแบบและเดาแทนผู้ใช้ไม่ได้
+ * ส่วนช่องที่ข้ามลำดับ (มี `p2` แต่ไม่มี `p1`) ยังตีความได้แบบเดียว จึงอ่านเป็นพอร์ตแรก (EC-CMP-03)
+ */
+function parsePortfolios(params: UrlParams): ParsedPortfolios {
+  const rawAssets = params.get("assets")
+  const slots: Array<{ raw: string; name: string | null }> = []
+  for (let slot = 1; slot <= MAX_PORTFOLIOS; slot++) {
+    const keys = slotKeys(slot)
+    const raw = params.get(keys.assets)
+    if (raw !== null) slots.push({ raw, name: params.get(keys.name) })
+  }
+
+  const overflow = params.get(slotKeys(MAX_PORTFOLIOS + 1).assets) !== null
+  const mixed = rawAssets !== null && slots.length > 0
+  const sources =
+    slots.length > 0
+      ? slots
+      : rawAssets !== null
+        ? [{ raw: rawAssets, name: null }]
+        : []
+
+  let broken = mixed || overflow
+  const portfolios: PortfolioSpec[] = []
+
+  for (const source of sources) {
+    const parsed = parseAssets(source.raw)
+    if (parsed.broken || parsed.rows.length === 0 || parsed.rows.length > MAX_ASSETS) broken = true
+    if (parsed.rows.length === 0) continue
+    portfolios.push({
+      name: (source.name ?? "").trim().slice(0, MAX_PORTFOLIO_NAME),
+      assets: parsed.rows,
+    })
+  }
+
+  return { portfolios, broken }
 }
 
 function parseCurrency(raw: string | null): Currency | null {

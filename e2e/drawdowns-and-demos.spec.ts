@@ -96,8 +96,8 @@ test.describe("US-11 พอร์ตตัวอย่างบนหน้า�
     await expect(page.getByTestId("portfolio-cagr")).toBeVisible({ timeout: 15_000 })
     const before = await page.getByTestId("portfolio-cagr").textContent()
 
-    await page.locator("#weight-0").fill("80")
-    await page.locator("#weight-1").fill("20")
+    await page.locator("#p0-weight-0").fill("80")
+    await page.locator("#p0-weight-1").fill("20")
     await page.getByRole("button", { name: "เริ่มทดสอบ", exact: true }).click()
 
     await expect(page).toHaveURL(/assets=VTI:80,BND:20/)

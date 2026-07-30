@@ -11,7 +11,8 @@ import {
   YAxis,
 } from "recharts"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import type { DrawdownData } from "@/lib/backtest/chart-data"
+import { seriesKey, type DrawdownData } from "@/lib/backtest/chart-data"
+import { BENCHMARK_DASH, lineDash, lineWidth } from "@/components/backtest/series-style"
 import { formatDuration, formatPercent, formatPercentAxis } from "@/lib/backtest/format"
 import { useLanguage } from "@/i18n"
 import { parseYearMonth } from "@/types/series"
@@ -19,6 +20,8 @@ import { parseYearMonth } from "@/types/series"
 type Props = {
   data: DrawdownData
   benchmarkSymbol: string
+  /** ชื่อพอร์ตที่แสดงแล้ว เรียงตามลำดับพอร์ต (BR-CMP-27) */
+  portfolioNames: string[]
 }
 
 /**
@@ -26,9 +29,11 @@ type Props = {
  * ค่าทุกตัวมาจากชั้นคำนวณ — หน้าจอไม่หาจุดต่ำสุดหรือคำนวณเวลาฟื้นเอง (BR-DDW-08)
  * ตาราง 5 อันดับทำหน้าที่เป็นข้อมูลเทียบเท่าของภาพไปในตัว (BR-DDW-09)
  */
-export function DrawdownSection({ data, benchmarkSymbol }: Props) {
+export function DrawdownSection({ data, benchmarkSymbol, portfolioNames }: Props) {
   const { t } = useLanguage()
   const benchmarkLabel = t("summary.benchmarkColumn", { symbol: benchmarkSymbol })
+  const single = portfolioNames.length === 1
+  const anyDrawdown = data.perPortfolio.some((p) => p.worst.length > 0)
 
   const monthLabel = (month: string) => {
     const { year, month: m } = parseYearMonth(month)
@@ -48,7 +53,7 @@ export function DrawdownSection({ data, benchmarkSymbol }: Props) {
       </CardHeader>
 
       <CardContent className="flex flex-col gap-3">
-        {data.worst.length === 0 ? (
+        {!anyDrawdown ? (
           <p className="text-sm text-muted-foreground" data-testid="drawdown-none">
             {t("drawdown.none")}
           </p>
@@ -84,24 +89,38 @@ export function DrawdownSection({ data, benchmarkSymbol }: Props) {
                       fontSize: "0.8rem",
                     }}
                   />
-                  {/* พอร์ต = พื้นที่ทึบ · ตลาด = เส้นประ แยกกันได้โดยไม่พึ่งสี (BR-DDW-05) */}
+                  {/* พอร์ตแรก = พื้นที่ทึบ · พอร์ตถัดไปและตลาด = เส้นลายต่างกัน (BR-DDW-05, BR-CMP-28) */}
                   <Area
                     type="monotone"
-                    dataKey="portfolio"
-                    name={t("summary.portfolioColumn")}
+                    dataKey={seriesKey(0)}
+                    name={portfolioNames[0]}
                     stroke="var(--primary)"
                     fill="var(--primary)"
                     fillOpacity={0.15}
                     strokeWidth={2}
                     isAnimationActive={false}
                   />
+                  {portfolioNames.slice(1).map((name, i) => (
+                    <Line
+                      key={i}
+                      type="monotone"
+                      dataKey={seriesKey(i + 1)}
+                      name={name}
+                      stroke="var(--primary)"
+                      strokeWidth={lineWidth(i + 1)}
+                      strokeDasharray={lineDash(i + 1)}
+                      dot={false}
+                      isAnimationActive={false}
+                      connectNulls
+                    />
+                  ))}
                   <Line
                     type="monotone"
                     dataKey="benchmark"
                     name={benchmarkLabel}
                     stroke="var(--muted-foreground)"
                     strokeWidth={1.5}
-                    strokeDasharray="5 4"
+                    strokeDasharray={BENCHMARK_DASH}
                     dot={false}
                     isAnimationActive={false}
                     connectNulls
@@ -110,15 +129,42 @@ export function DrawdownSection({ data, benchmarkSymbol }: Props) {
               </ResponsiveContainer>
             </div>
 
-            <p className="text-sm text-muted-foreground" data-testid="drawdown-count">
-              {data.totalPeriods > data.worst.length
-                ? t("drawdown.found", { count: data.totalPeriods, shown: data.worst.length })
-                : t("drawdown.foundFew", { count: data.totalPeriods })}
-            </p>
+            {/* หนึ่งตารางต่อพอร์ต เพราะช่วงขาดทุนของแต่ละพอร์ตไม่ตรงกัน รวมเป็นแถวเดียวกันไม่ได้ (BR-CMP-30) */}
+            {data.perPortfolio.map((portfolio, pIndex) => (
+              <section key={pIndex} className="flex flex-col gap-2">
+                {single ? null : (
+                  <h3 className="text-sm font-medium">
+                    {t("drawdown.headingFor", { name: portfolioNames[pIndex] })}
+                  </h3>
+                )}
 
+                <p
+                  className="text-sm text-muted-foreground"
+                  data-testid={single ? "drawdown-count" : `drawdown${pIndex}-count`}
+                >
+                  {portfolio.totalPeriods > portfolio.worst.length
+                    ? t("drawdown.found", {
+                        count: portfolio.totalPeriods,
+                        shown: portfolio.worst.length,
+                      })
+                    : t("drawdown.foundFew", { count: portfolio.totalPeriods })}
+                </p>
+
+                {portfolio.worst.length === 0 ? (
+                  <p
+                    className="text-sm text-muted-foreground"
+                    data-testid={single ? "drawdown-none" : `drawdown${pIndex}-none`}
+                  >
+                    {t("drawdown.none")}
+                  </p>
+                ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[34rem] text-sm">
-                <caption className="sr-only">{t("drawdown.chartCaption")}</caption>
+                <caption className="sr-only">
+                  {single
+                    ? t("drawdown.chartCaption")
+                    : t("drawdown.headingFor", { name: portfolioNames[pIndex] })}
+                </caption>
                 <thead>
                   <tr className="border-b text-left text-xs text-muted-foreground">
                     <th scope="col" className="py-1 pr-3 font-medium">
@@ -141,13 +187,18 @@ export function DrawdownSection({ data, benchmarkSymbol }: Props) {
                     </th>
                   </tr>
                 </thead>
-                <tbody data-testid="drawdown-table">
-                  {data.worst.map((period, index) => (
+                <tbody data-testid={single ? "drawdown-table" : `drawdown${pIndex}-table`}>
+                  {portfolio.worst.map((period, index) => {
+                    const cellId = (part: string) =>
+                      single
+                        ? `drawdown-${part}-${index + 1}`
+                        : `drawdown${pIndex}-${part}-${index + 1}`
+                    return (
                     <tr key={period.start} className="border-b last:border-0">
                       <th
                         scope="row"
                         className="py-1 pr-3 text-left font-normal tabular-nums"
-                        data-testid={`drawdown-rank-${index + 1}`}
+                        data-testid={cellId("rank")}
                       >
                         {index + 1}
                       </th>
@@ -155,31 +206,29 @@ export function DrawdownSection({ data, benchmarkSymbol }: Props) {
                       <td className="py-1 pr-3">{monthLabel(period.trough)}</td>
                       <td
                         className="py-1 pr-3 text-right tabular-nums"
-                        data-testid={`drawdown-depth-${index + 1}`}
+                        data-testid={cellId("depth")}
                       >
                         {formatPercent(period.depth)}
                       </td>
-                      <td
-                        className="py-1 pr-3"
-                        data-testid={`drawdown-recovered-${index + 1}`}
-                      >
+                      <td className="py-1 pr-3" data-testid={cellId("recovered")}>
                         {period.recoveredAt === null
                           ? t("drawdown.notRecovered")
                           : monthLabel(period.recoveredAt)}
                       </td>
-                      <td
-                        className="py-1 tabular-nums"
-                        data-testid={`drawdown-duration-${index + 1}`}
-                      >
+                      <td className="py-1 tabular-nums" data-testid={cellId("duration")}>
                         {period.recoveryMonths === null
                           ? t("drawdown.notRecovered")
                           : duration(period.recoveryMonths)}
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
+                )}
+              </section>
+            ))}
           </>
         )}
       </CardContent>

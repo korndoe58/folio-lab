@@ -32,24 +32,34 @@ export const DEMO_PORTFOLIOS: DemoPortfolio[] = [
     key: "balanced",
     config: {
       ...SHARED,
-      assets: [
-        { symbol: "VTI", weight: "60" },
-        { symbol: "BND", weight: "40" },
+      portfolios: [
+        {
+          name: "",
+          assets: [
+            { symbol: "VTI", weight: "60" },
+            { symbol: "BND", weight: "40" },
+          ],
+        },
       ],
     },
   },
   {
     key: "allUsStocks",
-    config: { ...SHARED, assets: [{ symbol: "VTI", weight: "100" }] },
+    config: { ...SHARED, portfolios: [{ name: "", assets: [{ symbol: "VTI", weight: "100" }] }] },
   },
   {
     key: "global",
     config: {
       ...SHARED,
-      assets: [
-        { symbol: "VTI", weight: "60" },
-        { symbol: "VXUS", weight: "25" },
-        { symbol: "BND", weight: "15" },
+      portfolios: [
+        {
+          name: "",
+          assets: [
+            { symbol: "VTI", weight: "60" },
+            { symbol: "VXUS", weight: "25" },
+            { symbol: "BND", weight: "15" },
+          ],
+        },
       ],
     },
   },
@@ -63,10 +73,15 @@ export const DEMO_PORTFOLIOS: DemoPortfolio[] = [
       benchmark: "SPY",
       baseCurrency: "THB",
       inflationAdjusted: false,
-      assets: [
-        { symbol: "PTT.BK", weight: "30" },
-        { symbol: "CPALL.BK", weight: "30" },
-        { symbol: "VTI", weight: "40" },
+      portfolios: [
+        {
+          name: "",
+          assets: [
+            { symbol: "PTT.BK", weight: "30" },
+            { symbol: "CPALL.BK", weight: "30" },
+            { symbol: "VTI", weight: "40" },
+          ],
+        },
       ],
     },
   },
@@ -79,5 +94,5 @@ export function demoPortfolioHref(portfolio: DemoPortfolio): string {
 
 /** ส่วนผสมแบบอ่านง่ายสำหรับแสดงบนการ์ด เช่น "VTI 60% · BND 40%" */
 export function demoPortfolioMix(portfolio: DemoPortfolio): string {
-  return portfolio.config.assets.map((a) => `${a.symbol} ${a.weight}%`).join(" · ")
+  return portfolio.config.portfolios[0].assets.map((a) => `${a.symbol} ${a.weight}%`).join(" · ")
 }

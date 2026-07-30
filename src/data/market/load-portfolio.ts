@@ -15,7 +15,10 @@ export type LoadedAsset = {
 
 export type LoadPortfolioInput = {
   provider: PriceProvider
-  /** สัญลักษณ์ของสินทรัพย์ในพอร์ต เรียงตามลำดับที่ผู้ใช้กรอก */
+  /**
+   * สัญลักษณ์ที่ต้องใช้ทั้งหมด **ตัดตัวซ้ำออกแล้ว** — สัญลักษณ์เดียวกันที่อยู่ในหลายพอร์ต
+   * ต้องดึงรอบเดียว (BR-CMP-06) · ผู้เรียกจับคู่กลับเข้าพอร์ตเองด้วย `bySymbol`
+   */
   symbols: string[]
   benchmark: string
   range: MonthRange
@@ -26,6 +29,8 @@ export type LoadPortfolioResult =
   | {
       ok: true
       assets: LoadedAsset[]
+      /** ค้นชุดผลตอบแทนจากสัญลักษณ์ — ใช้ประกอบพอร์ตแต่ละชุดจากชุดที่ดึงมารอบเดียว */
+      bySymbol: Map<string, MonthlyReturn[]>
       benchmark: MonthlyReturn[]
       /** true เมื่อมีสินทรัพย์อย่างน้อยหนึ่งตัวถูกแปลงค่าเงิน — หน้าจอใช้แจ้งผู้ใช้ (BR-THB-07) */
       converted: boolean
@@ -71,9 +76,12 @@ export async function loadPortfolioSeries(
   const inBase = (symbol: string, returns: MonthlyReturn[]) =>
     convertReturns(returns, fx, currencyOf(symbol), base)
 
+  const assets = symbols.map((symbol, i) => ({ symbol, returns: inBase(symbol, series[i]) }))
+
   return {
     ok: true,
-    assets: symbols.map((symbol, i) => ({ symbol, returns: inBase(symbol, series[i]) })),
+    assets,
+    bySymbol: new Map(assets.map((asset) => [asset.symbol, asset.returns])),
     benchmark: inBase(benchmark, series[series.length - 1]),
     converted: converting,
   }

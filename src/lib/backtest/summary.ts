@@ -22,19 +22,29 @@ export type MetricFormat = "money" | "percent" | "ratio"
 /** ทิศทางที่ถือว่า "ดีกว่า" — ความผันผวนและช่วงขาดทุนยิ่งใกล้ศูนย์ยิ่งดี */
 type Direction = "higher-better" | "closer-to-zero-better"
 
+/** ค่าของหนึ่งพอร์ตในหนึ่งแถว */
+export type SummaryCell = {
+  value: number | null
+  /** ปีของค่านั้น สำหรับแถวปีที่ดีที่สุด/แย่ที่สุด */
+  year?: number
+  /**
+   * พอร์ตนี้ดีกว่าหรือแย่กว่า **ตัวเทียบ** — null เมื่อเทียบไม่ได้
+   * เทียบกับตัวเทียบเสมอ ไม่ใช่เทียบพอร์ตกันเอง เพราะพอร์ตไหน "ดีกว่า" ขึ้นกับว่าผู้ใช้
+   * ให้น้ำหนักผลตอบแทนหรือความเสี่ยง ซึ่งเครื่องมือไม่ควรตัดสินแทน (BR-CMP-23)
+   */
+  comparison: "better" | "worse" | "equal" | null
+  /** เหตุผลที่ค่านี้คำนวณไม่ได้ (คีย์ i18n) */
+  unavailableReason?: string
+}
+
 export type SummaryRow = {
   /** คีย์ของคำอธิบายใน metric-glossary */
   metric: string
   format: MetricFormat
-  portfolio: number | null
+  /** หนึ่งช่องต่อพอร์ต เรียงตามลำดับพอร์ตในฟอร์ม (BR-CMP-22, BR-CMP-26) */
+  portfolios: SummaryCell[]
   benchmark: number | null
-  /** ปีของค่านั้น สำหรับแถวปีที่ดีที่สุด/แย่ที่สุด */
-  portfolioYear?: number
   benchmarkYear?: number
-  /** พอร์ตดีกว่าหรือแย่กว่าตัวเทียบ — null เมื่อเทียบไม่ได้ */
-  comparison: "better" | "worse" | "equal" | null
-  /** เหตุผลที่ค่านี้คำนวณไม่ได้ (คีย์ i18n) */
-  unavailableReason?: string
   /** ค่านี้หักเงินเฟ้อแล้ว — หน้าจอต้องกำกับให้เห็น ไม่ใช่เปลี่ยนตัวเลขเงียบ ๆ (BR-INF-10) */
   adjusted?: boolean
 }
@@ -70,13 +80,14 @@ const DIRECTION: Record<string, Direction> = {
  * ผลตอบแทนของตัวเทียบต้องถูกตัดให้เป็นช่วงเดียวกับพอร์ตมาแล้ว มิฉะนั้นจะเป็นการเทียบคนละช่วง
  */
 export function assembleSummary(input: {
-  portfolio: MonthlyReturn[]
+  /** ผลตอบแทนของแต่ละพอร์ต ตัดให้เป็นช่วงเวลาร่วมเดียวกันมาแล้ว (BR-CMP-04) */
+  portfolios: MonthlyReturn[][]
   benchmark: MonthlyReturn[]
   riskFree: MonthlyReturn[]
   amount: number
   inflation?: InflationInput
 }): Summary {
-  const { portfolio, benchmark, riskFree, amount, inflation } = input
+  const { portfolios, benchmark, riskFree, amount, inflation } = input
   const adjusting = inflation?.enabled === true
   const rates = inflation?.rates ?? []
 
@@ -99,45 +110,83 @@ export function assembleSummary(input: {
     return bestWorstFullYears(adjusting ? realAnnualReturns(annual, rates) : annual)
   }
 
-  const portfolioTotals = deflate(portfolio)
+  const totals = portfolios.map(deflate)
+  const annual = portfolios.map(yearly)
+  const drawdowns = portfolios.map(maxDrawdown)
+  const sortinos = portfolios.map((series) => sortino(series, riskFree))
+
   const benchmarkTotals = deflate(benchmark)
-  const portfolioAnnual = yearly(portfolio)
   const benchmarkAnnual = yearly(benchmark)
-  const portfolioDrawdown = maxDrawdown(portfolio)
   const benchmarkDrawdown = maxDrawdown(benchmark)
-  const portfolioSortino = sortino(portfolio, riskFree)
-  const benchmarkSortino = sortino(benchmark, riskFree)
 
   // ค่าความเสี่ยงทุกตัวยังเป็นตัวเงินปกติ เพราะนิยามบนผลตอบแทนรายเดือน
   // ซึ่งดัชนีเงินเฟ้อรายปีไม่มีความละเอียดพอจะปรับได้ (BR-INF-08)
   const rows: SummaryRow[] = [
-    row("startAmount", "money", amount, amount),
-    adjusted(row("endBalance", "money", portfolioTotals.endBalance, benchmarkTotals.endBalance)),
-    adjusted(row("cagr", "percent", portfolioTotals.cagr, benchmarkTotals.cagr)),
-    row("stdev", "percent", annualizedStdev(portfolio), annualizedStdev(benchmark)),
+    row("startAmount", "money", portfolios.map(() => ({ value: amount })), amount),
+    adjusted(
+      row(
+        "endBalance",
+        "money",
+        totals.map((t) => ({ value: t.endBalance })),
+        benchmarkTotals.endBalance,
+      ),
+    ),
+    adjusted(
+      row("cagr", "percent", totals.map((t) => ({ value: t.cagr })), benchmarkTotals.cagr),
+    ),
+    row(
+      "stdev",
+      "percent",
+      portfolios.map((series) => ({ value: annualizedStdev(series) })),
+      annualizedStdev(benchmark),
+    ),
     adjusted({
-      ...row("bestYear", "percent", portfolioAnnual.best?.value ?? null, benchmarkAnnual.best?.value ?? null),
-      portfolioYear: portfolioAnnual.best?.year,
+      ...row(
+        "bestYear",
+        "percent",
+        annual.map((a) => ({ value: a.best?.value ?? null, year: a.best?.year })),
+        benchmarkAnnual.best?.value ?? null,
+      ),
       benchmarkYear: benchmarkAnnual.best?.year,
     }),
     adjusted({
-      ...row("worstYear", "percent", portfolioAnnual.worst?.value ?? null, benchmarkAnnual.worst?.value ?? null),
-      portfolioYear: portfolioAnnual.worst?.year,
+      ...row(
+        "worstYear",
+        "percent",
+        annual.map((a) => ({ value: a.worst?.value ?? null, year: a.worst?.year })),
+        benchmarkAnnual.worst?.value ?? null,
+      ),
       benchmarkYear: benchmarkAnnual.worst?.year,
     }),
-    row("maxDrawdown", "percent", portfolioDrawdown?.depth ?? null, benchmarkDrawdown?.depth ?? null),
-    row("sharpe", "ratio", sharpe(portfolio, riskFree), sharpe(benchmark, riskFree)),
-    {
-      ...row("sortino", "ratio", portfolioSortino, benchmarkSortino),
-      unavailableReason: portfolioSortino === null ? "summary.noDownside" : undefined,
-    },
+    row(
+      "maxDrawdown",
+      "percent",
+      drawdowns.map((d) => ({ value: d?.depth ?? null })),
+      benchmarkDrawdown?.depth ?? null,
+    ),
+    row(
+      "sharpe",
+      "ratio",
+      portfolios.map((series) => ({ value: sharpe(series, riskFree) })),
+      sharpe(benchmark, riskFree),
+    ),
+    row(
+      "sortino",
+      "ratio",
+      sortinos.map((value) => ({
+        value,
+        unavailableReason: value === null ? "summary.noDownside" : undefined,
+      })),
+      sortino(benchmark, riskFree),
+    ),
   ]
 
   const inflationGapYears = [
-    ...new Set([...portfolioTotals.missingYears, ...benchmarkTotals.missingYears]),
+    ...new Set([...totals.flatMap((t) => t.missingYears), ...benchmarkTotals.missingYears]),
   ].sort((a, b) => a - b)
 
-  return { rows, months: portfolio.length, inflationGapYears }
+  // ทุกพอร์ตอยู่บนช่วงเวลาร่วมเดียวกันแล้ว จำนวนเดือนจึงเท่ากันทุกชุด
+  return { rows, months: portfolios[0]?.length ?? 0, inflationGapYears }
 
   function adjusted(target: SummaryRow): SummaryRow {
     return adjusting ? { ...target, adjusted: true } : target
@@ -147,17 +196,25 @@ export function assembleSummary(input: {
 function row(
   metric: string,
   format: MetricFormat,
-  portfolio: number | null,
+  cells: Array<{ value: number | null; year?: number; unavailableReason?: string }>,
   benchmark: number | null,
 ): SummaryRow {
-  return { metric, format, portfolio, benchmark, comparison: compare(metric, portfolio, benchmark) }
+  return {
+    metric,
+    format,
+    benchmark,
+    portfolios: cells.map((cell) => ({
+      ...cell,
+      comparison: compare(metric, cell.value, benchmark),
+    })),
+  }
 }
 
 function compare(
   metric: string,
   portfolio: number | null,
   benchmark: number | null,
-): SummaryRow["comparison"] {
+): SummaryCell["comparison"] {
   if (portfolio === null || benchmark === null) return null
   // เงินตั้งต้นเท่ากันเสมอ ไม่ต้องเทียบ
   if (metric === "startAmount") return null

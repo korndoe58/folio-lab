@@ -7,8 +7,8 @@ const EVIDENCE = "artifacts/evidence/S4"
 const FULL_LINK =
   "/backtest?assets=VTI:60,BND:40&start=2015&end=2025&amount=10000&benchmark=SPY"
 
-const symbol = (page: Page, index: number) => page.locator(`#symbol-${index}`)
-const weight = (page: Page, index: number) => page.locator(`#weight-${index}`)
+const symbol = (page: Page, index: number) => page.locator(`#p0-symbol-${index}`)
+const weight = (page: Page, index: number) => page.locator(`#p0-weight-${index}`)
 const submit = (page: Page) => page.getByRole("button", { name: "เริ่มทดสอบ", exact: true })
 /** ผลลัพธ์พร้อมแล้ว — ตั้งแต่ US-07 เป็นต้นไปคือตารางสรุป (เดิมเป็นแถบช่วงเวลาขั้นต่ำ) */
 const resultsReady = (page: Page) => page.getByRole("heading", { name: "สรุปผลการทดสอบ" })

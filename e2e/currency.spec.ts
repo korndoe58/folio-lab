@@ -78,14 +78,14 @@ test.describe("US-13 เลือกสกุลเงินฐาน", () => {
   test("EC-CUR-01 สกุลเงินที่ไม่รู้จักในลิงก์ แจ้ง V-008 แล้วแก้ต่อได้", async ({ page }) => {
     await page.goto(`/backtest?assets=VTI:100&${COMMON}&base=EUR`)
     await expect(page.getByText("ลิงก์นี้มีค่าตั้งต้นไม่ครบหรือไม่ถูกต้อง")).toBeVisible()
-    await expect(page.locator("#symbol-0")).toHaveValue("VTI")
+    await expect(page.locator("#p0-symbol-0")).toHaveValue("VTI")
   })
 })
 
 test.describe("US-14 หุ้นไทยใช้ได้เต็มรูปแบบ", () => {
   test("AC-SET-01 รายการแนะนำแบ่งกลุ่มและมีหุ้นไทยครบห้าตัว", async ({ page }) => {
     await page.goto("/backtest")
-    await page.locator("#symbol-0").click()
+    await page.locator("#p0-symbol-0").click()
 
     const options = page.getByRole("option")
     await expect(options.filter({ hasText: ".BK" })).toHaveCount(5)
@@ -95,8 +95,8 @@ test.describe("US-14 หุ้นไทยใช้ได้เต็มรู�
 
   test("AC-SET-02 เลือกหุ้นไทยจากรายการแล้วรันได้", async ({ page }) => {
     await page.goto("/backtest")
-    await page.locator("#symbol-0").fill("PTT.BK")
-    await page.locator("#weight-0").fill("100")
+    await page.locator("#p0-symbol-0").fill("PTT.BK")
+    await page.locator("#p0-weight-0").fill("100")
     await page.getByRole("button", { name: "เริ่มทดสอบ", exact: true }).click()
     await expect(ready(page)).toBeVisible({ timeout: 30_000 })
   })

@@ -72,10 +72,18 @@ export function portfolioReturns(
   return { returns, usedRange: overlap.range, limitedBy: overlap.limitedBy }
 }
 
-/** ช่วงที่ทุกสินทรัพย์มีข้อมูลร่วมกัน พร้อมบอกว่าใครเป็นตัวจำกัด (BR-ENG-14) */
-function commonRange(
-  assets: PortfolioAsset[],
-): { range: MonthRange; limitedBy: string[] } | null {
+export type SharedRange = { range: MonthRange; limitedBy: string[] }
+
+/**
+ * ช่วงที่ทุกสินทรัพย์มีข้อมูลร่วมกัน พร้อมบอกว่าใครเป็นตัวจำกัด (BR-ENG-14)
+ *
+ * ส่งออกให้ชั้นบนใช้หาช่วงร่วมของ **ทุกพอร์ตรวมกัน** ก่อนคำนวณ (BR-CMP-04) — ต้องตัดชุดผลตอบแทน
+ * ให้อยู่ในช่วงร่วมก่อนเรียก `portfolioReturns` เสมอ เพราะน้ำหนักลอยและถูกดึงกลับตามรอบ
+ * การตัดผลลัพธ์ทีหลังจะได้ค่าของพอร์ตที่น้ำหนักลอยมาจากเดือนที่ไม่ได้อยู่ในช่วงร่วม
+ */
+export function commonRange(
+  assets: Array<{ symbol: string; returns: MonthlyReturn[] }>,
+): SharedRange | null {
   const spans = assets.map((asset) => ({
     symbol: asset.symbol,
     first: asset.returns[0]?.month,

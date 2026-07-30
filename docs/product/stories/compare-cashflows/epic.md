@@ -101,8 +101,8 @@
 
 | US | ชื่อ | Priority | Session | Status | การ์ด |
 | --- | --- | --- | --- | --- | --- |
-| US-16 | ตั้งค่าและเทียบพอร์ตได้ถึง 3 ชุด | P0 | S15 | 🟢 Ready | [`./US-16-multi-portfolio.md`](./US-16-multi-portfolio.md) |
-| US-17 | กราฟและตารางทุกส่วนแสดงหลายพอร์ตพร้อมกัน | P0 | S15 | 🟢 Ready | [`./US-17-multi-portfolio-visuals.md`](./US-17-multi-portfolio-visuals.md) |
+| US-16 | ตั้งค่าและเทียบพอร์ตได้ถึง 3 ชุด | P0 | S15 | ✅ Done | [`./US-16-multi-portfolio.md`](./US-16-multi-portfolio.md) |
+| US-17 | กราฟและตารางทุกส่วนแสดงหลายพอร์ตพร้อมกัน | P0 | S15 | ✅ Done | [`./US-17-multi-portfolio-visuals.md`](./US-17-multi-portfolio-visuals.md) |
 | US-18 | ใส่เงินเพิ่มหรือถอนระหว่างทาง | P0 | S15b | 🟢 Ready | [`./US-18-cashflows.md`](./US-18-cashflows.md) |
 | US-19 | เลือกวิธีปรับสมดุลพอร์ต | P1 | S15b | 🟢 Ready | [`./US-19-rebalancing.md`](./US-19-rebalancing.md) |
 | US-20 | ผลตอบแทนแบบหน้าต่างเลื่อน | P1 | S16 | 🟢 Ready | [`./US-20-rolling-returns.md`](./US-20-rolling-returns.md) |

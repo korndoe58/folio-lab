@@ -50,10 +50,10 @@ test.describe("US-11 หน้าแรกและพอร์ตตัวอ�
 test.describe("US-05/US-06 ฟอร์มและลิงก์", () => {
   test("กรอกเองแล้วรันได้ ลิงก์เปลี่ยนตาม และเปิดซ้ำได้ผลเดิม", async ({ page }) => {
     await page.goto(url("/backtest"))
-    await page.locator("#symbol-0").fill("AAPL")
-    await page.locator("#weight-0").fill("70")
-    await page.locator("#symbol-1").fill("MSFT")
-    await page.locator("#weight-1").fill("30")
+    await page.locator("#p0-symbol-0").fill("AAPL")
+    await page.locator("#p0-weight-0").fill("70")
+    await page.locator("#p0-symbol-1").fill("MSFT")
+    await page.locator("#p0-weight-1").fill("30")
     await page.getByRole("button", { name: "เริ่มทดสอบ", exact: true }).click()
 
     await expect(page.getByTestId("portfolio-cagr")).toBeVisible({ timeout: 60_000 })
@@ -66,8 +66,8 @@ test.describe("US-05/US-06 ฟอร์มและลิงก์", () => {
 
   test("สัญลักษณ์ที่ไม่มีจริง แจ้งให้แก้ได้", async ({ page }) => {
     await page.goto(url("/backtest"))
-    await page.locator("#symbol-0").fill("ZQXWV")
-    await page.locator("#symbol-0").blur()
+    await page.locator("#p0-symbol-0").fill("ZQXWV")
+    await page.locator("#p0-symbol-0").blur()
     await expect(page.getByText(/ไม่พบข้อมูลของ ZQXWV/)).toBeVisible({ timeout: 60_000 })
   })
 })

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AnnualData, DrawdownData, GrowthData } from "@/lib/backtest/chart-data"
 import type { Summary } from "@/lib/backtest/summary"
+import { resolvePortfolioNames } from "@/lib/backtest/portfolio-names"
 import type { Currency } from "@/data/currency"
 import { useLanguage } from "@/i18n"
 import { parseYearMonth, type MonthRange } from "@/types/series"
@@ -29,6 +30,8 @@ export type RunState =
       converted: boolean
       /** true เมื่อผลชุดนี้หักเงินเฟ้อไทยแล้ว (US-15) */
       inflationAdjusted: boolean
+      /** ชื่อพอร์ตดิบตามที่ผู้ใช้ตั้ง เรียงตามลำดับพอร์ต — ว่างแปลว่าใช้ชื่อปริยาย */
+      portfolioNames: string[]
       clamped?: { symbol: string }
     }
   | { kind: "error"; messageKey: string; params?: Record<string, string>; retryable: boolean }
@@ -89,6 +92,8 @@ export function RunStatus({ state, onRetry }: { state: RunState; onRetry: () => 
     )
   }
 
+  const names = resolvePortfolioNames(state.portfolioNames, t)
+
   return (
     <div className="flex flex-col gap-3">
       {/* ประกาศให้โปรแกรมอ่านหน้าจอรู้ว่าผลพร้อมแล้ว (AC-SUM-10) */}
@@ -120,22 +125,29 @@ export function RunStatus({ state, onRetry }: { state: RunState; onRetry: () => 
         range={state.range}
         benchmarkSymbol={state.benchmarkSymbol}
         currency={state.currency}
+        portfolioNames={names}
       />
 
       <GrowthChart
         data={state.growth}
         benchmarkSymbol={state.benchmarkSymbol}
         currency={state.currency}
+        portfolioNames={names}
         inflationAdjusted={state.inflationAdjusted}
       />
 
       <AnnualSection
         data={state.annual}
         benchmarkSymbol={state.benchmarkSymbol}
+        portfolioNames={names}
         inflationAdjusted={state.inflationAdjusted}
       />
 
-      <DrawdownSection data={state.drawdown} benchmarkSymbol={state.benchmarkSymbol} />
+      <DrawdownSection
+        data={state.drawdown}
+        benchmarkSymbol={state.benchmarkSymbol}
+        portfolioNames={names}
+      />
 
       {state.clamped ? (
         <p className="text-sm text-muted-foreground" role="status">

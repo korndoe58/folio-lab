@@ -11,13 +11,16 @@ import {
   YAxis,
 } from "recharts"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import type { AnnualData } from "@/lib/backtest/chart-data"
+import { seriesKey, type AnnualData } from "@/lib/backtest/chart-data"
+import { barOpacity } from "@/components/backtest/series-style"
 import { formatPercent, formatPercentAxis } from "@/lib/backtest/format"
 import { useLanguage } from "@/i18n"
 
 type Props = {
   data: AnnualData
   benchmarkSymbol: string
+  /** ชื่อพอร์ตที่แสดงแล้ว เรียงตามลำดับพอร์ต (BR-CMP-27) */
+  portfolioNames: string[]
   /** ค่าในส่วนนี้หักเงินเฟ้อแล้ว — ต้องกำกับให้เห็น ไม่ใช่เปลี่ยนตัวเลขเงียบ ๆ (BR-INF-10) */
   inflationAdjusted?: boolean
 }
@@ -27,7 +30,12 @@ type Props = {
  * แท่งพอร์ต = ทึบ · แท่งตัวเทียบ = โปร่งมีขอบ — แยกกันได้โดยไม่ต้องพึ่งสี
  * ตารางแสดงคู่กับกราฟเสมอตาม BR-ANN-02 จึงทำหน้าที่เป็นข้อมูลเทียบเท่าไปในตัว
  */
-export function AnnualSection({ data, benchmarkSymbol, inflationAdjusted = false }: Props) {
+export function AnnualSection({
+  data,
+  benchmarkSymbol,
+  portfolioNames,
+  inflationAdjusted = false,
+}: Props) {
   const { t } = useLanguage()
   const benchmarkLabel = t("summary.benchmarkColumn", { symbol: benchmarkSymbol })
 
@@ -72,12 +80,18 @@ export function AnnualSection({ data, benchmarkSymbol, inflationAdjusted = false
                   fontSize: "0.8rem",
                 }}
               />
-              <Bar
-                dataKey="portfolio"
-                name={t("summary.portfolioColumn")}
-                fill="var(--primary)"
-                isAnimationActive={false}
-              />
+              {portfolioNames.map((name, index) => (
+                <Bar
+                  key={index}
+                  dataKey={seriesKey(index)}
+                  name={name}
+                  fill="var(--primary)"
+                  fillOpacity={barOpacity(index)}
+                  stroke="var(--primary)"
+                  strokeWidth={index === 0 ? 0 : 1}
+                  isAnimationActive={false}
+                />
+              ))}
               <Bar
                 dataKey="benchmark"
                 name={benchmarkLabel}
@@ -100,9 +114,11 @@ export function AnnualSection({ data, benchmarkSymbol, inflationAdjusted = false
                 <th scope="col" className="py-1 pr-3 font-medium">
                   {t("chart.yearColumn")}
                 </th>
-                <th scope="col" className="py-1 pr-3 text-right font-medium">
-                  {t("summary.portfolioColumn")}
-                </th>
+                {portfolioNames.map((name, index) => (
+                  <th key={index} scope="col" className="py-1 pr-3 text-right font-medium">
+                    {name}
+                  </th>
+                ))}
                 <th scope="col" className="py-1 text-right font-medium">
                   {benchmarkLabel}
                 </th>
@@ -113,18 +129,25 @@ export function AnnualSection({ data, benchmarkSymbol, inflationAdjusted = false
                 <tr key={row.year} className="border-b last:border-0">
                   <th scope="row" className="py-1 pr-3 text-left font-normal tabular-nums">
                     {row.year}
-                    {row.portfolioMonths ? (
+                    {row.months[0] ? (
                       <span className="ml-2 text-xs text-muted-foreground">
-                        {t("chart.partialYear", { count: row.portfolioMonths })}
+                        {t("chart.partialYear", { count: row.months[0] })}
                       </span>
                     ) : null}
                   </th>
-                  <td
-                    className="py-1 pr-3 text-right tabular-nums"
-                    data-testid={`annual-${row.year}`}
-                  >
-                    {formatPercent(row.portfolio)}
-                  </td>
+                  {row.values.map((value, index) => (
+                    <td
+                      key={index}
+                      className="py-1 pr-3 text-right tabular-nums"
+                      data-testid={
+                        portfolioNames.length === 1
+                          ? `annual-${row.year}`
+                          : `annual${index}-${row.year}`
+                      }
+                    >
+                      {formatPercent(value)}
+                    </td>
+                  ))}
                   <td className="py-1 text-right tabular-nums text-muted-foreground">
                     {formatPercent(row.benchmark)}
                   </td>

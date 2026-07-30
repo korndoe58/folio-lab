@@ -13,9 +13,17 @@ type Props = {
   range: MonthRange
   benchmarkSymbol: string
   currency: Currency
+  /** ชื่อพอร์ตที่แสดงแล้ว เรียงตามลำดับพอร์ต (BR-CMP-27) */
+  portfolioNames: string[]
 }
 
-export function SummaryTable({ summary, range, benchmarkSymbol, currency }: Props) {
+export function SummaryTable({
+  summary,
+  range,
+  benchmarkSymbol,
+  currency,
+  portfolioNames,
+}: Props) {
   const { t } = useLanguage()
 
   const monthLabel = (month: string) => {
@@ -23,12 +31,15 @@ export function SummaryTable({ summary, range, benchmarkSymbol, currency }: Prop
     return `${t(`months.${m}`)} ${year}`
   }
 
-  const show = (row: SummaryRow, column: "portfolio" | "benchmark") => {
-    const value = row[column]
+  const show = (row: SummaryRow, value: number | null) => {
     if (row.format === "money") return formatMoney(value, currency)
     if (row.format === "percent") return formatPercent(value)
     return formatRatio(value)
   }
+
+  /** พอร์ตเดียวใช้ testid เดิม เพื่อให้จอและหลักฐานของการใช้งานปกติไม่เปลี่ยน (BR-CMP-31) */
+  const cellId = (metric: string, index: number) =>
+    portfolioNames.length === 1 ? `portfolio-${metric}` : `portfolio${index}-${metric}`
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="summary-heading">
@@ -59,9 +70,11 @@ export function SummaryTable({ summary, range, benchmarkSymbol, currency }: Prop
               <th scope="col" className="px-4 py-2 text-left font-medium">
                 {t("summary.metricColumn")}
               </th>
-              <th scope="col" className="px-4 py-2 text-right font-medium">
-                {t("summary.portfolioColumn")}
-              </th>
+              {portfolioNames.map((name, index) => (
+                <th key={index} scope="col" className="px-4 py-2 text-right font-medium">
+                  {name}
+                </th>
+              ))}
               <th scope="col" className="px-4 py-2 text-right font-medium">
                 {t("summary.benchmarkColumn", { symbol: benchmarkSymbol })}
               </th>
@@ -70,7 +83,6 @@ export function SummaryTable({ summary, range, benchmarkSymbol, currency }: Prop
           <tbody data-testid="summary-rows">
             {summary.rows.map((row) => {
               const label = t(`metric.${row.metric}.label`)
-              const unavailable = row.portfolio === null
 
               return (
                 <tr key={row.metric} className="border-b last:border-b-0">
@@ -101,28 +113,30 @@ export function SummaryTable({ summary, range, benchmarkSymbol, currency }: Prop
                     </span>
                   </th>
 
-                  <td className="px-4 py-2 text-right tabular-nums">
-                    <span data-testid={`portfolio-${row.metric}`} className="font-medium">
-                      {show(row, "portfolio")}
-                    </span>
-                    {row.portfolioYear ? (
-                      <span className="ml-1 text-xs text-muted-foreground">({row.portfolioYear})</span>
-                    ) : null}
-                    {unavailable && row.unavailableReason ? (
-                      <span className="block text-xs font-normal text-muted-foreground">
-                        {t(row.unavailableReason)}
+                  {row.portfolios.map((cell, index) => (
+                    <td key={index} className="px-4 py-2 text-right tabular-nums">
+                      <span data-testid={cellId(row.metric, index)} className="font-medium">
+                        {show(row, cell.value)}
                       </span>
-                    ) : null}
-                    {row.comparison && row.comparison !== "equal" ? (
-                      <span className="block text-xs text-muted-foreground">
-                        <span aria-hidden>{row.comparison === "better" ? "▲ " : "▼ "}</span>
-                        {t(`summary.${row.comparison}`)}
-                      </span>
-                    ) : null}
-                  </td>
+                      {cell.year ? (
+                        <span className="ml-1 text-xs text-muted-foreground">({cell.year})</span>
+                      ) : null}
+                      {cell.value === null && cell.unavailableReason ? (
+                        <span className="block text-xs font-normal text-muted-foreground">
+                          {t(cell.unavailableReason)}
+                        </span>
+                      ) : null}
+                      {cell.comparison && cell.comparison !== "equal" ? (
+                        <span className="block text-xs text-muted-foreground">
+                          <span aria-hidden>{cell.comparison === "better" ? "▲ " : "▼ "}</span>
+                          {t(`summary.${cell.comparison}`)}
+                        </span>
+                      ) : null}
+                    </td>
+                  ))}
 
                   <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
-                    <span data-testid={`benchmark-${row.metric}`}>{show(row, "benchmark")}</span>
+                    <span data-testid={`benchmark-${row.metric}`}>{show(row, row.benchmark)}</span>
                     {row.benchmarkYear ? (
                       <span className="ml-1 text-xs">({row.benchmarkYear})</span>
                     ) : null}

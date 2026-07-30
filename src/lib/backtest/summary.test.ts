@@ -22,7 +22,7 @@ const REFERENCE = portfolioReturns([
 const BENCHMARK = portfolioReturns([{ symbol: "SPY", weight: 100, returns: spy.returns }]).returns
 
 const summary = assembleSummary({
-  portfolio: REFERENCE,
+  portfolios: [REFERENCE],
   benchmark: BENCHMARK,
   riskFree: rf.returns as MonthlyReturn[],
   amount: 10_000,
@@ -34,8 +34,12 @@ const find = (metric: string): SummaryRow => {
   return row
 }
 
+/** ค่าของพอร์ตลำดับนั้น หรือของตัวเทียบ */
+const valueOf = (row: SummaryRow, column: "portfolio" | "benchmark", index = 0) =>
+  column === "benchmark" ? row.benchmark : row.portfolios[index].value
+
 const shown = (row: SummaryRow, column: "portfolio" | "benchmark") => {
-  const value = row[column]
+  const value = valueOf(row, column)
   if (row.format === "money") return formatMoney(value, "USD")
   if (row.format === "percent") return formatPercent(value)
   return formatRatio(value)
@@ -80,22 +84,22 @@ describe("US-07 ค่าที่จะขึ้นบนตารางสร�
 
   test("AC-SUM-04 ปีที่ดีที่สุดและแย่ที่สุดพร้อมปีกำกับ (เฉพาะปีเต็ม)", () => {
     const best = find("bestYear")
-    expect(best.portfolioYear).toBe(2019)
+    expect(best.portfolios[0].year).toBe(2019)
     expect(shown(best, "portfolio")).toBe("24.02%")
 
     const worst = find("worstYear")
-    expect(worst.portfolioYear).toBe(2022)
+    expect(worst.portfolios[0].year).toBe(2022)
     expect(shown(worst, "portfolio")).toBe("-17.95%")
   })
 
   test("BR-SUM-07 ทิศเทียบตัวเทียบถูกต้องต่อแถว", () => {
     // พอร์ตให้ผลตอบแทนน้อยกว่าตลาดในช่วงนี้
-    expect(find("cagr").comparison).toBe("worse")
+    expect(find("cagr").portfolios[0].comparison).toBe("worse")
     // แต่ผันผวนน้อยกว่าและขาดทุนตื้นกว่า จึงถือว่าดีกว่าในสองแถวนั้น
-    expect(find("stdev").comparison).toBe("better")
-    expect(find("maxDrawdown").comparison).toBe("better")
+    expect(find("stdev").portfolios[0].comparison).toBe("better")
+    expect(find("maxDrawdown").portfolios[0].comparison).toBe("better")
     // เงินตั้งต้นเท่ากันไม่ต้องเทียบ
-    expect(find("startAmount").comparison).toBeNull()
+    expect(find("startAmount").portfolios[0].comparison).toBeNull()
   })
 
   test("จำนวนเดือนตรงกับช่วงที่ใช้จริง", () => {
@@ -106,7 +110,7 @@ describe("US-07 ค่าที่จะขึ้นบนตารางสร�
 describe("US-07 ค่าที่คำนวณไม่ได้", () => {
   const upOnly = portfolioReturns([{ symbol: "UPONLY", weight: 100, returns: uponly.returns }]).returns
   const noDownside = assembleSummary({
-    portfolio: upOnly,
+    portfolios: [upOnly],
     benchmark: BENCHMARK,
     riskFree: rf.returns as MonthlyReturn[],
     amount: 10_000,
@@ -115,10 +119,10 @@ describe("US-07 ค่าที่คำนวณไม่ได้", () => {
   test("AC-SUM-05 พอร์ตที่ไม่มีเดือนติดลบ Sortino ไม่มีค่าและมีเหตุผลกำกับ", () => {
     const row = noDownside.rows.find((r) => r.metric === "sortino")!
 
-    expect(row.portfolio).toBeNull()
-    expect(row.unavailableReason).toBe("summary.noDownside")
-    expect(formatRatio(row.portfolio)).toBe(NO_VALUE)
-    expect(row.comparison, "เทียบไม่ได้เมื่อค่าหนึ่งไม่มี").toBeNull()
+    expect(row.portfolios[0].value).toBeNull()
+    expect(row.portfolios[0].unavailableReason).toBe("summary.noDownside")
+    expect(formatRatio(row.portfolios[0].value)).toBe(NO_VALUE)
+    expect(row.portfolios[0].comparison, "เทียบไม่ได้เมื่อค่าหนึ่งไม่มี").toBeNull()
   })
 
   test("ค่าที่ไม่มีต้องไม่ถูกแสดงเป็นศูนย์", () => {
@@ -128,9 +132,76 @@ describe("US-07 ค่าที่คำนวณไม่ได้", () => {
   })
 })
 
+describe("US-16 ตารางสรุปหลายพอร์ต", () => {
+  const allStocks = portfolioReturns([{ symbol: "VTI", weight: 100, returns: vti.returns }]).returns
+  const compared = assembleSummary({
+    portfolios: [REFERENCE, allStocks],
+    benchmark: BENCHMARK,
+    riskFree: rf.returns as MonthlyReturn[],
+    amount: 10_000,
+  })
+
+  const comparedRow = (metric: string): SummaryRow =>
+    compared.rows.find((r) => r.metric === metric)!
+
+  test("AC-CMP-04 ทุกแถวมีค่าครบทุกพอร์ตและตัวเทียบ", () => {
+    expect(compared.rows).toHaveLength(9)
+    for (const row of compared.rows) {
+      expect(row.portfolios, `แถว ${row.metric}`).toHaveLength(2)
+      expect(row.benchmark, `แถว ${row.metric} ต้องมีค่าของตัวเทียบ`).not.toBeNull()
+    }
+  })
+
+  test("BR-CMP-31 พอร์ตแรกได้ค่าเท่ากับตอนรันเดี่ยวทุกหลัก", () => {
+    for (const row of compared.rows) {
+      expect(row.portfolios[0], `แถว ${row.metric}`).toEqual(find(row.metric).portfolios[0])
+    }
+  })
+
+  test("BR-CMP-23 เทียบทิศกับตัวเทียบ ไม่ใช่เทียบพอร์ตกันเอง", () => {
+    // พอร์ตหุ้นล้วนให้ผลตอบแทนสูงกว่าพอร์ตผสม แต่ทั้งคู่ยังแพ้ตัวเทียบในช่วงนี้
+    expect(comparedRow("cagr").portfolios[1].value!).toBeGreaterThan(
+      comparedRow("cagr").portfolios[0].value!,
+    )
+    expect(comparedRow("cagr").portfolios[0].comparison).toBe("worse")
+    expect(comparedRow("cagr").portfolios[1].comparison).toBe("worse")
+  })
+
+  test("ค่าที่คำนวณไม่ได้เป็นเรื่องของพอร์ตนั้น ไม่ลามไปพอร์ตอื่น", () => {
+    const upOnly = portfolioReturns([
+      { symbol: "UPONLY", weight: 100, returns: uponly.returns },
+    ]).returns
+    const mixed = assembleSummary({
+      portfolios: [REFERENCE, upOnly],
+      benchmark: BENCHMARK,
+      riskFree: rf.returns as MonthlyReturn[],
+      amount: 10_000,
+    })
+    const sortinoRow = mixed.rows.find((r) => r.metric === "sortino")!
+
+    expect(sortinoRow.portfolios[0].value).not.toBeNull()
+    expect(sortinoRow.portfolios[0].unavailableReason).toBeUndefined()
+    expect(sortinoRow.portfolios[1].value).toBeNull()
+    expect(sortinoRow.portfolios[1].unavailableReason).toBe("summary.noDownside")
+  })
+
+  test("BR-CMP-26 ลำดับพอร์ตในทุกแถวตรงกับลำดับที่ส่งเข้าไป", () => {
+    const reversed = assembleSummary({
+      portfolios: [allStocks, REFERENCE],
+      benchmark: BENCHMARK,
+      riskFree: rf.returns as MonthlyReturn[],
+      amount: 10_000,
+    })
+
+    expect(reversed.rows.map((r) => r.portfolios[0].value)).toEqual(
+      compared.rows.map((r) => r.portfolios[1].value),
+    )
+  })
+})
+
 describe("US-15 ปรับเงินเฟ้อในตารางสรุป", () => {
   const real = assembleSummary({
-    portfolio: REFERENCE,
+    portfolios: [REFERENCE],
     benchmark: BENCHMARK,
     riskFree: rf.returns as MonthlyReturn[],
     amount: 10_000,
@@ -146,7 +217,7 @@ describe("US-15 ปรับเงินเฟ้อในตารางสร�
   test("BR-INF-04 ค่าที่ควรถูกปรับ ลดลงและถูกกำกับว่าหักเงินเฟ้อแล้ว", () => {
     for (const metric of ["endBalance", "cagr"]) {
       expect(realRow(metric).adjusted, `แถว ${metric} ต้องถูกกำกับ`).toBe(true)
-      expect(realRow(metric).portfolio!).toBeLessThan(find(metric).portfolio!)
+      expect(realRow(metric).portfolios[0].value!).toBeLessThan(find(metric).portfolios[0].value!)
       expect(realRow(metric).benchmark!).toBeLessThan(find(metric).benchmark!)
     }
     expect(realRow("bestYear").adjusted).toBe(true)
@@ -155,15 +226,15 @@ describe("US-15 ปรับเงินเฟ้อในตารางสร�
 
   test("BR-INF-08 ค่าความเสี่ยงเท่าเดิมทุกหลัก และไม่ถูกกำกับ", () => {
     for (const metric of ["stdev", "maxDrawdown", "sharpe", "sortino"]) {
-      expect(realRow(metric).portfolio, `แถว ${metric} ของพอร์ตต้องไม่ขยับ`).toBe(
-        find(metric).portfolio,
+      expect(realRow(metric).portfolios[0].value, `แถว ${metric} ของพอร์ตต้องไม่ขยับ`).toBe(
+        find(metric).portfolios[0].value,
       )
       expect(realRow(metric).benchmark, `แถว ${metric} ของตัวเทียบต้องไม่ขยับ`).toBe(
         find(metric).benchmark,
       )
       expect(realRow(metric).adjusted).toBeUndefined()
     }
-    expect(realRow("startAmount").portfolio).toBe(10_000)
+    expect(realRow("startAmount").portfolios[0].value).toBe(10_000)
     expect(realRow("startAmount").adjusted).toBeUndefined()
   })
 
@@ -175,9 +246,9 @@ describe("US-15 ปรับเงินเฟ้อในตารางสร�
       return rate ? acc * (1 + rate.value) : acc
     }, 1)
 
-    const nominalEnd = find("endBalance").portfolio!
-    expect(realRow("endBalance").portfolio).toBeCloseTo(nominalEnd / factor, 9)
-    expect(realRow("cagr").portfolio).toBeCloseTo(
+    const nominalEnd = find("endBalance").portfolios[0].value!
+    expect(realRow("endBalance").portfolios[0].value).toBeCloseTo(nominalEnd / factor, 9)
+    expect(realRow("cagr").portfolios[0].value).toBeCloseTo(
       (nominalEnd / factor / 10_000) ** (12 / 174) - 1,
       12,
     )
@@ -192,18 +263,18 @@ describe("US-15 ปรับเงินเฟ้อในตารางสร�
     const worst = realRow("worstYear")
     const rate2022 = cpi.rates.find((r) => r.year === 2022)!
 
-    expect(worst.portfolioYear).toBe(2022)
+    expect(worst.portfolios[0].year).toBe(2022)
     // ปี 2022 ติดลบอยู่แล้ว พอหักเงินเฟ้อ 6.08% ยิ่งติดลบมากขึ้น
-    expect(worst.portfolio!).toBeLessThan(find("worstYear").portfolio!)
-    expect(worst.portfolio).toBeCloseTo(
-      (1 + find("worstYear").portfolio!) / (1 + rate2022.value) - 1,
+    expect(worst.portfolios[0].value!).toBeLessThan(find("worstYear").portfolios[0].value!)
+    expect(worst.portfolios[0].value).toBeCloseTo(
+      (1 + find("worstYear").portfolios[0].value!) / (1 + rate2022.value) - 1,
       12,
     )
   })
 
   test("AC-INF-10 ปิดตัวเลือกแล้วได้ผลชุดเดิมทุกหลัก", () => {
     const off = assembleSummary({
-      portfolio: REFERENCE,
+      portfolios: [REFERENCE],
       benchmark: BENCHMARK,
       riskFree: rf.returns as MonthlyReturn[],
       amount: 10_000,

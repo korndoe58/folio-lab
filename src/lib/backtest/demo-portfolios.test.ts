@@ -33,13 +33,13 @@ describe("พอร์ตตัวอย่างหน้าแรก (US-11)",
 
   it.each(DEMO_PORTFOLIOS)("ชุด $key มีค่าครบทุกช่องตาม BR-DMO-04", (portfolio) => {
     const { config } = portfolio
-    expect(config.assets.length).toBeGreaterThan(0)
+    expect(config.portfolios[0].assets.length).toBeGreaterThan(0)
     expect(config.startYear).toBe(2015)
     expect(config.endYear).toBe(2025)
     expect(config.amount).toBeGreaterThan(0)
     expect(config.benchmark).toBe("SPY")
 
-    const total = config.assets.reduce((sum, a) => sum + Number(a.weight), 0)
+    const total = config.portfolios[0].assets.reduce((sum, a) => sum + Number(a.weight), 0)
     expect(total).toBe(100)
   })
 
@@ -52,7 +52,7 @@ describe("พอร์ตตัวอย่างหน้าแรก (US-11)",
     expect(decoded.ok).toBe(true)
     if (!decoded.ok) return
 
-    expect(decoded.config.assets).toEqual(portfolio.config.assets)
+    expect(decoded.config.portfolios[0].assets).toEqual(portfolio.config.portfolios[0].assets)
     expect(decoded.config.startYear).toBe(portfolio.config.startYear)
     expect(decoded.config.endYear).toBe(portfolio.config.endYear)
     expect(decoded.config.amount).toBe(portfolio.config.amount)

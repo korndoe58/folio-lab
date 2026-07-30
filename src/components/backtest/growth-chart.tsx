@@ -12,7 +12,8 @@ import {
 } from "recharts"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import type { GrowthData } from "@/lib/backtest/chart-data"
+import { seriesKey, type GrowthData } from "@/lib/backtest/chart-data"
+import { BENCHMARK_DASH, lineDash, lineWidth } from "@/components/backtest/series-style"
 import { formatMoney } from "@/lib/backtest/format"
 import type { Currency } from "@/data/currency"
 import { useLanguage } from "@/i18n"
@@ -22,6 +23,8 @@ type Props = {
   data: GrowthData
   benchmarkSymbol: string
   currency: Currency
+  /** ชื่อพอร์ตที่แสดงแล้ว เรียงตามลำดับพอร์ต (BR-CMP-27) */
+  portfolioNames: string[]
   /** เส้นนี้ไม่ถูกปรับเงินเฟ้อเพราะดัชนีมีแค่รายปี — ต้องบอกผู้ใช้เมื่อเปิดตัวเลือก (BR-INF-07) */
   inflationAdjusted?: boolean
 }
@@ -34,6 +37,7 @@ export function GrowthChart({
   data,
   benchmarkSymbol,
   currency,
+  portfolioNames,
   inflationAdjusted = false,
 }: Props) {
   const { t } = useLanguage()
@@ -46,7 +50,7 @@ export function GrowthChart({
   }
 
   const values = data.points.flatMap((p) =>
-    p.benchmark === null ? [p.portfolio] : [p.portfolio, p.benchmark],
+    [...p.values, p.benchmark].filter((v): v is number => v !== null),
   )
   const domain = logScale
     ? ([Math.min(...values) * 0.9, Math.max(...values) * 1.1] as const)
@@ -111,22 +115,27 @@ export function GrowthChart({
                   fontSize: "0.8rem",
                 }}
               />
-              <Line
-                type="monotone"
-                dataKey="portfolio"
-                name={t("summary.portfolioColumn")}
-                stroke="var(--primary)"
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={false}
-              />
+              {portfolioNames.map((name, index) => (
+                <Line
+                  key={index}
+                  type="monotone"
+                  dataKey={seriesKey(index)}
+                  name={name}
+                  stroke="var(--primary)"
+                  strokeWidth={lineWidth(index)}
+                  strokeDasharray={lineDash(index)}
+                  dot={false}
+                  isAnimationActive={false}
+                  connectNulls
+                />
+              ))}
               <Line
                 type="monotone"
                 dataKey="benchmark"
                 name={t("summary.benchmarkColumn", { symbol: benchmarkSymbol })}
                 stroke="var(--muted-foreground)"
                 strokeWidth={1.5}
-                strokeDasharray="5 4"
+                strokeDasharray={BENCHMARK_DASH}
                 dot={false}
                 isAnimationActive={false}
                 connectNulls
@@ -152,9 +161,11 @@ export function GrowthChart({
                   <th scope="col" className="py-1 pr-3 font-medium">
                     {t("chart.monthColumn")}
                   </th>
-                  <th scope="col" className="py-1 pr-3 text-right font-medium">
-                    {t("summary.portfolioColumn")}
-                  </th>
+                  {portfolioNames.map((name, index) => (
+                    <th key={index} scope="col" className="py-1 pr-3 text-right font-medium">
+                      {name}
+                    </th>
+                  ))}
                   <th scope="col" className="py-1 text-right font-medium">
                     {t("summary.benchmarkColumn", { symbol: benchmarkSymbol })}
                   </th>
@@ -167,12 +178,19 @@ export function GrowthChart({
                       {row.year}
                     </th>
                     <td className="py-1 pr-3 text-muted-foreground">{monthLabel(row.month)}</td>
-                    <td
-                      className="py-1 pr-3 text-right tabular-nums"
-                      data-testid={`year-end-${row.year}`}
-                    >
-                      {formatMoney(row.portfolio, currency)}
-                    </td>
+                    {row.values.map((value, index) => (
+                      <td
+                        key={index}
+                        className="py-1 pr-3 text-right tabular-nums"
+                        data-testid={
+                          portfolioNames.length === 1
+                            ? `year-end-${row.year}`
+                            : `year-end${index}-${row.year}`
+                        }
+                      >
+                        {formatMoney(value, currency)}
+                      </td>
+                    ))}
                     <td className="py-1 text-right tabular-nums text-muted-foreground">
                       {formatMoney(row.benchmark, currency)}
                     </td>

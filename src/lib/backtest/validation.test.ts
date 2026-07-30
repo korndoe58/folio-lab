@@ -1,13 +1,24 @@
 import { describe, expect, test } from "vitest"
-import type { BacktestConfig } from "@/types/backtest"
+import type { BacktestConfig, PortfolioRow } from "@/types/backtest"
 import { evenWeights, hasIssues, validateConfig, weightSum } from "./validation"
 
 const LAST_CLOSED_YEAR = 2026
 
-const config = (overrides: Partial<BacktestConfig> = {}): BacktestConfig => ({
-  assets: [
-    { symbol: "VTI", weight: "60" },
-    { symbol: "BND", weight: "40" },
+/** `assets` เป็นทางลัดของพอร์ตเดียว ส่วน `portfolios` ใช้ตอนทดสอบการเทียบหลายพอร์ต */
+type ConfigOverrides = Partial<Omit<BacktestConfig, "portfolios">> & {
+  assets?: PortfolioRow[]
+  portfolios?: BacktestConfig["portfolios"]
+}
+
+const config = ({ assets, portfolios, ...overrides }: ConfigOverrides = {}): BacktestConfig => ({
+  portfolios: portfolios ?? [
+    {
+      name: "",
+      assets: assets ?? [
+        { symbol: "VTI", weight: "60" },
+        { symbol: "BND", weight: "40" },
+      ],
+    },
   ],
   startYear: 2015,
   endYear: 2025,
@@ -17,6 +28,9 @@ const config = (overrides: Partial<BacktestConfig> = {}): BacktestConfig => ({
   inflationAdjusted: false,
   ...overrides,
 })
+
+/** ปัญหาระดับพอร์ตของพอร์ตแรก — ที่อยู่ใหม่ของ V-001 และ V-002 (BR-CMP-18) */
+const firstPortfolio = (issues: ReturnType<typeof check>) => issues.portfolios[0]
 
 const check = (c: BacktestConfig, unknownSymbols?: Set<string>) =>
   validateConfig(c, { lastClosedYear: LAST_CLOSED_YEAR, unknownSymbols })
@@ -32,12 +46,12 @@ describe("US-05 การตรวจฟอร์ม", () => {
       { symbol: "BND", weight: "30" },
     ] }))
 
-    expect(issues.form).toEqual({ code: "V-001", params: { sum: "90" } })
+    expect(firstPortfolio(issues).portfolio).toEqual({ code: "V-001", params: { sum: "90" } })
   })
 
   test("AC-CFG-04 ยังไม่กรอกสัญลักษณ์เลย แจ้ง V-002", () => {
     const issues = check(config({ assets: [{ symbol: "", weight: "" }] }))
-    expect(issues.form?.code).toBe("V-002")
+    expect(firstPortfolio(issues).portfolio?.code).toBe("V-002")
   })
 
   test("AC-CFG-05 สัญลักษณ์ที่ไม่มีข้อมูล แจ้ง V-003 พร้อมชื่อ", () => {
@@ -46,7 +60,7 @@ describe("US-05 การตรวจฟอร์ม", () => {
       new Set(["ZZZZZ"]),
     )
 
-    expect(issues.rows[0]).toEqual({ code: "V-003", params: { symbol: "ZZZZZ" } })
+    expect(firstPortfolio(issues).rows[0]).toEqual({ code: "V-003", params: { symbol: "ZZZZZ" } })
   })
 
   test("AC-CFG-06 ปีเริ่มต้นมากกว่าปีสิ้นสุด แจ้ง V-004", () => {
@@ -70,13 +84,13 @@ describe("US-05 การตรวจฟอร์ม", () => {
 
   test("AC-CFG-09 + EC-CFG-03 น้ำหนักนอกช่วงหรือไม่ใช่ตัวเลข แจ้ง V-007", () => {
     const outOfRange = check(config({ assets: [{ symbol: "VTI", weight: "150" }] }))
-    expect(outOfRange.rows[0]?.code).toBe("V-007")
+    expect(outOfRange.portfolios[0].rows[0]?.code).toBe("V-007")
 
     const notANumber = check(config({ assets: [{ symbol: "VTI", weight: "abc" }] }))
-    expect(notANumber.rows[0]?.code).toBe("V-007")
+    expect(notANumber.portfolios[0].rows[0]?.code).toBe("V-007")
 
     const blank = check(config({ assets: [{ symbol: "VTI", weight: "   " }] }))
-    expect(blank.rows[0]?.code, "ช่องว่างล้วนต้องไม่ถือเป็นศูนย์เงียบ ๆ").toBe("V-007")
+    expect(blank.portfolios[0].rows[0]?.code, "ช่องว่างล้วนต้องไม่ถือเป็นศูนย์เงียบ ๆ").toBe("V-007")
   })
 
   test("AC-CFG-10 สัญลักษณ์ซ้ำในพอร์ตเดียว แจ้ง V-010", () => {
@@ -85,7 +99,7 @@ describe("US-05 การตรวจฟอร์ม", () => {
       { symbol: "vti", weight: "50" },
     ] }))
 
-    expect(issues.rows[1]?.code).toBe("V-010")
+    expect(firstPortfolio(issues).rows[1]?.code).toBe("V-010")
   })
 
   test("EC-CFG-01 น้ำหนักรวม 99.99 หรือ 100.01 ยังผ่านตามความคลาดที่ยอมรับ", () => {
@@ -94,14 +108,14 @@ describe("US-05 การตรวจฟอร์ม", () => {
       { symbol: "B", weight: "33.33" },
       { symbol: "C", weight: "33.33" },
     ] }))
-    expect(three.form).toBeNull()
+    expect(three.portfolios[0].portfolio).toBeNull()
 
     const under = check(config({ assets: [
       { symbol: "A", weight: "33.33" },
       { symbol: "B", weight: "33.33" },
       { symbol: "C", weight: "33.33" },
     ] }))
-    expect(under.form).toBeNull()
+    expect(under.portfolios[0].portfolio).toBeNull()
   })
 
   test("EC-CFG-07 สัญลักษณ์ตัวพิมพ์เล็กใช้ได้", () => {
@@ -109,8 +123,8 @@ describe("US-05 การตรวจฟอร์ม", () => {
   })
 
   test("สัญลักษณ์ผิดรูปแบบแจ้ง V-003", () => {
-    expect(check(config({ assets: [{ symbol: "VT I", weight: "100" }] })).rows[0]?.code).toBe("V-003")
-    expect(check(config({ assets: [{ symbol: "1ABC", weight: "100" }] })).rows[0]?.code).toBe("V-003")
+    expect(check(config({ assets: [{ symbol: "VT I", weight: "100" }] })).portfolios[0].rows[0]?.code).toBe("V-003")
+    expect(check(config({ assets: [{ symbol: "1ABC", weight: "100" }] })).portfolios[0].rows[0]?.code).toBe("V-003")
   })
 
   test("ตัวเทียบที่ไม่มีข้อมูลแจ้ง V-003 ที่ช่องตัวเทียบ", () => {
@@ -124,8 +138,105 @@ describe("US-05 การตรวจฟอร์ม", () => {
       { symbol: "", weight: "" },
     ] }))
 
-    expect(issues.rows[1]).toBeNull()
-    expect(issues.form).toBeNull()
+    expect(firstPortfolio(issues).rows[1]).toBeNull()
+    expect(firstPortfolio(issues).portfolio).toBeNull()
+  })
+})
+
+describe("US-16 การตรวจฟอร์มหลายพอร์ต", () => {
+  const named = (name: string, assets: PortfolioRow[]) => ({ name, assets })
+
+  test("AC-CMP-06 ข้อความชี้ไปที่พอร์ตที่ผิดจริง พอร์ตอื่นไม่ขึ้นข้อความ", () => {
+    const issues = check(
+      config({
+        portfolios: [
+          named("", [{ symbol: "VTI", weight: "100" }]),
+          named("", [
+            { symbol: "VTI", weight: "60" },
+            { symbol: "BND", weight: "30" },
+          ]),
+        ],
+      }),
+    )
+
+    expect(issues.portfolios[0].portfolio).toBeNull()
+    expect(issues.portfolios[1].portfolio).toEqual({ code: "V-001", params: { sum: "90" } })
+  })
+
+  test("BR-CMP-19 สัญลักษณ์เดียวกันข้ามพอร์ตไม่ผิด แต่ซ้ำในพอร์ตเดียวกันผิด", () => {
+    const acrossPortfolios = check(
+      config({
+        portfolios: [
+          named("", [{ symbol: "VTI", weight: "100" }]),
+          named("", [{ symbol: "VTI", weight: "100" }]),
+        ],
+      }),
+    )
+    expect(hasIssues(acrossPortfolios)).toBe(false)
+
+    const withinOne = check(
+      config({
+        portfolios: [
+          named("", [
+            { symbol: "VTI", weight: "50" },
+            { symbol: "VTI", weight: "50" },
+          ]),
+        ],
+      }),
+    )
+    expect(withinOne.portfolios[0].rows[1]?.code).toBe("V-010")
+  })
+
+  test("AC-CMP-07 ชื่อพอร์ตซ้ำแจ้ง V-013 ทุกพอร์ตที่ใช้ชื่อนั้น", () => {
+    const issues = check(
+      config({
+        portfolios: [
+          named("ทดลอง", [{ symbol: "VTI", weight: "100" }]),
+          named(" ทดลอง ", [{ symbol: "BND", weight: "100" }]),
+          named("อีกอัน", [{ symbol: "SPY", weight: "100" }]),
+        ],
+      }),
+    )
+
+    expect(issues.portfolios[0].portfolio?.code).toBe("V-013")
+    expect(issues.portfolios[1].portfolio?.code).toBe("V-013")
+    expect(issues.portfolios[2].portfolio).toBeNull()
+  })
+
+  test("BR-CMP-17 ชื่อที่ต่างกันแค่ตัวพิมพ์ถือว่าซ้ำ ส่วนชื่อว่างไม่นับ", () => {
+    const sameLetters = check(
+      config({
+        portfolios: [
+          named("Growth", [{ symbol: "VTI", weight: "100" }]),
+          named("growth", [{ symbol: "BND", weight: "100" }]),
+        ],
+      }),
+    )
+    expect(sameLetters.portfolios[0].portfolio?.code).toBe("V-013")
+
+    const bothBlank = check(
+      config({
+        portfolios: [
+          named("", [{ symbol: "VTI", weight: "100" }]),
+          named("", [{ symbol: "BND", weight: "100" }]),
+        ],
+      }),
+    )
+    expect(hasIssues(bothBlank)).toBe(false)
+  })
+
+  test("BR-CMP-18 พอร์ตที่ยังไม่กรอกสินทรัพย์แจ้ง V-002 เฉพาะพอร์ตนั้น", () => {
+    const issues = check(
+      config({
+        portfolios: [
+          named("", [{ symbol: "VTI", weight: "100" }]),
+          named("", [{ symbol: "", weight: "" }]),
+        ],
+      }),
+    )
+
+    expect(issues.portfolios[0].portfolio).toBeNull()
+    expect(issues.portfolios[1].portfolio?.code).toBe("V-002")
   })
 })
 

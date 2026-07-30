@@ -15,9 +15,14 @@ describe("US-06 อ่านค่าจากลิงก์", () => {
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.config).toEqual({
-      assets: [
-        { symbol: "VTI", weight: "60" },
-        { symbol: "BND", weight: "40" },
+      portfolios: [
+        {
+          name: "",
+          assets: [
+            { symbol: "VTI", weight: "60" },
+            { symbol: "BND", weight: "40" },
+          ],
+        },
       ],
       startYear: 2015,
       endYear: 2025,
@@ -89,7 +94,7 @@ describe("US-06 อ่านค่าจากลิงก์", () => {
 
     expect(result.ok).toBe(false)
     if (result.ok) return
-    expect(result.partial.assets).toEqual([{ symbol: "VTI", weight: "60" }])
+    expect(result.partial.portfolios[0].assets).toEqual([{ symbol: "VTI", weight: "60" }])
   })
 
   test("AC-URL-07 สินทรัพย์เกิน 10 รายการ ถือว่าโครงสร้างเสีย", () => {
@@ -114,7 +119,7 @@ describe("US-06 อ่านค่าจากลิงก์", () => {
 
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    expect(result.config.assets).toHaveLength(2)
+    expect(result.config.portfolios[0].assets).toHaveLength(2)
   })
 
   test("EC-URL-05 พารามิเตอร์ซ้ำ ใช้ค่าแรก", () => {
@@ -137,7 +142,7 @@ describe("US-06 อ่านค่าจากลิงก์", () => {
 
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    expect(result.config.assets[0].symbol).toBe("VTI")
+    expect(result.config.portfolios[0].assets[0].symbol).toBe("VTI")
     expect(result.config.benchmark).toBe("SPY")
   })
 })
@@ -145,9 +150,14 @@ describe("US-06 อ่านค่าจากลิงก์", () => {
 describe("US-06 เขียนค่าลงลิงก์", () => {
   test("AC-URL-01 รูปแบบลิงก์ตาม BR-URL-02 และอ่านออกในแถบที่อยู่", () => {
     const encoded = encodeConfig({
-      assets: [
-        { symbol: "VTI", weight: "60" },
-        { symbol: "BND", weight: "40" },
+      portfolios: [
+        {
+          name: "",
+          assets: [
+            { symbol: "VTI", weight: "60" },
+            { symbol: "BND", weight: "40" },
+          ],
+        },
       ],
       startYear: 2015,
       endYear: 2025,
@@ -164,11 +174,16 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
 
   test("แปลงไปกลับได้ค่าเดิมเสมอ", () => {
     const config = {
-      assets: [
-        { symbol: "VTI", weight: "48" },
-        { symbol: "VNQ", weight: "8" },
-        { symbol: "VXUS", weight: "24" },
-        { symbol: "BND", weight: "20" },
+      portfolios: [
+        {
+          name: "",
+          assets: [
+            { symbol: "VTI", weight: "48" },
+            { symbol: "VNQ", weight: "8" },
+            { symbol: "VXUS", weight: "24" },
+            { symbol: "BND", weight: "20" },
+          ],
+        },
       ],
       startYear: 2012,
       endYear: 2026,
@@ -185,9 +200,14 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
 
   test("แถวที่ยังไม่กรอกสัญลักษณ์ไม่ถูกเขียนลงลิงก์", () => {
     const encoded = encodeConfig({
-      assets: [
-        { symbol: "VTI", weight: "100" },
-        { symbol: "", weight: "" },
+      portfolios: [
+        {
+          name: "",
+          assets: [
+            { symbol: "VTI", weight: "100" },
+            { symbol: "", weight: "" },
+          ],
+        },
       ],
       baseCurrency: "USD",
       startYear: 2020,
@@ -205,6 +225,102 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
     const keys = [...new URLSearchParams(encoded).keys()].sort()
 
     expect(keys).toEqual(["amount", "assets", "base", "benchmark", "end", "start"])
+  })
+})
+
+describe("US-16 หลายพอร์ตในลิงก์", () => {
+  const solo = (assets: string) => ({ name: "", assets: parseRows(assets) })
+  const parseRows = (raw: string) =>
+    raw.split(",").map((piece) => {
+      const [symbol, weight] = piece.split(":")
+      return { symbol, weight }
+    })
+
+  test("BR-CMP-31 พอร์ตเดียวไม่มีชื่อ ยังเขียนออกเป็นรูปแบบเดิมทุกตัวอักษร", () => {
+    const encoded = encodeConfig({
+      ...defaultConfig(LAST_CLOSED_YEAR),
+      portfolios: [solo("VTI:60,BND:40")],
+    })
+
+    expect(encoded).toContain("assets=VTI:60,BND:40")
+    expect(encoded).not.toContain("p1=")
+  })
+
+  test("BR-CMP-20 หลายพอร์ตใช้ p1 ถึง p3 และไปกลับได้ครบรวมชื่อภาษาไทย", () => {
+    const config = {
+      ...defaultConfig(LAST_CLOSED_YEAR),
+      portfolios: [
+        { name: "ผสม", assets: parseRows("VTI:60,BND:40") },
+        { name: "หุ้นล้วน", assets: parseRows("VTI:100") },
+        { name: "", assets: parseRows("PTT.BK:100") },
+      ],
+    }
+
+    const encoded = encodeConfig(config)
+    expect(encoded).toContain("p1=VTI:60,BND:40")
+    expect(encoded).toContain("p2=VTI:100")
+    expect(encoded).toContain("p3=PTT.BK:100")
+
+    const result = decodeConfig(params(encoded), LAST_CLOSED_YEAR)
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.config.portfolios).toEqual(config.portfolios)
+  })
+
+  test("พอร์ตเดียวที่ตั้งชื่อเอง ใช้รูปแบบหลายพอร์ตเพื่อให้ชื่อเดินทางไปกับลิงก์ได้", () => {
+    const encoded = encodeConfig({
+      ...defaultConfig(LAST_CLOSED_YEAR),
+      portfolios: [{ name: "ของฉัน", assets: parseRows("VTI:100") }],
+    })
+
+    expect(encoded).toContain("p1=VTI:100")
+    expect(encoded).not.toContain("assets=")
+
+    const result = decodeConfig(params(encoded), LAST_CLOSED_YEAR)
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.config.portfolios[0].name).toBe("ของฉัน")
+  })
+
+  test("BR-CMP-21 ลิงก์ที่มีทั้ง assets และ p1 ถือว่าอ่านโครงสร้างไม่ออก", () => {
+    const result = decodeConfig(params("assets=VTI:100&p1=BND:100"), LAST_CLOSED_YEAR)
+    expect(result.ok).toBe(false)
+  })
+
+  test("EC-CMP-02 พอร์ตเกิน 3 ชุด แจ้งโครงสร้างเสียแล้วเติมสามชุดแรกให้แก้ต่อ", () => {
+    const result = decodeConfig(
+      params("p1=VTI:100&p2=BND:100&p3=SPY:100&p4=VNQ:100"),
+      LAST_CLOSED_YEAR,
+    )
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.partial.portfolios).toHaveLength(3)
+    expect(result.partial.portfolios[0].assets[0].symbol).toBe("VTI")
+  })
+
+  test("EC-CMP-03 มี p2 แต่ไม่มี p1 อ่านเป็นพอร์ตแรก ไม่ถือว่าเสีย", () => {
+    const result = decodeConfig(params("p2=VTI:100"), LAST_CLOSED_YEAR)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.config.portfolios).toHaveLength(1)
+    expect(result.config.portfolios[0].assets[0].symbol).toBe("VTI")
+  })
+
+  test("พอร์ตใดพอร์ตหนึ่งอ่านไม่ออก ถือว่าทั้งลิงก์เสีย", () => {
+    expect(decodeConfig(params("p1=VTI:100&p2=BND"), LAST_CLOSED_YEAR).ok).toBe(false)
+  })
+
+  test("ชื่อพอร์ตที่ยาวเกินถูกตัดให้พอดีขอบเขต", () => {
+    const long = "ก".repeat(40)
+    const result = decodeConfig(params(`p1=VTI:100&p1.n=${long}`), LAST_CLOSED_YEAR)
+
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.config.portfolios[0].name).toHaveLength(20)
+  })
+
+  test("ลิงก์ที่มีแค่พอร์ตชุดที่สอง ไม่ถือเป็นฟอร์มเปล่า", () => {
+    expect(isEmptyParams(params("p2=VTI:100"))).toBe(false)
+    expect(isEmptyParams(params(""))).toBe(true)
   })
 })
 
@@ -244,7 +360,7 @@ describe("US-15 ตัวเลือกปรับเงินเฟ้อใ�
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(result.partial.inflationAdjusted).toBe(false)
-    expect(result.partial.assets[0].symbol).toBe("VTI")
+    expect(result.partial.portfolios[0].assets[0].symbol).toBe("VTI")
   })
 
   test("ลิงก์ที่มีแค่ตัวเลือกนี้ ไม่ถือเป็นฟอร์มเปล่า", () => {

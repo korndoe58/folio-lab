@@ -5,10 +5,12 @@
  * ค่าที่คำนวณไม่ได้ตามนิยามคืน null เสมอ ไม่ใช่ 0 (BR-ENG-15)
  */
 export {
+  commonRange,
   portfolioReturns,
   type PortfolioAsset,
   type PortfolioResult,
   type RebalanceMode,
+  type SharedRange,
 } from "./portfolio"
 export { growthSeries, endBalance, type GrowthPoint } from "./growth"
 export { cagr, annualizeGrowth, annualizedStdev, sharpe, sortino } from "./metrics"
