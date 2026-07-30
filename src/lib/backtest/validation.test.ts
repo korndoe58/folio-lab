@@ -13,6 +13,7 @@ const config = (overrides: Partial<BacktestConfig> = {}): BacktestConfig => ({
   endYear: 2025,
   amount: 10_000,
   benchmark: "SPY",
+  baseCurrency: "USD",
   ...overrides,
 })
 

@@ -14,19 +14,21 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import type { GrowthData } from "@/lib/backtest/chart-data"
 import { formatMoney } from "@/lib/backtest/format"
+import type { Currency } from "@/data/currency"
 import { useLanguage } from "@/i18n"
 import { parseYearMonth } from "@/types/series"
 
 type Props = {
   data: GrowthData
   benchmarkSymbol: string
+  currency: Currency
 }
 
 /**
  * เส้นมูลค่าพอร์ตเทียบตัวเทียบ (US-08)
  * พอร์ต = เส้นทึบ · ตัวเทียบ = เส้นประ — แยกกันได้โดยไม่ต้องพึ่งสี (BR-GRW-06)
  */
-export function GrowthChart({ data, benchmarkSymbol }: Props) {
+export function GrowthChart({ data, benchmarkSymbol, currency }: Props) {
   const { t } = useLanguage()
   const [logScale, setLogScale] = useState(false)
 
@@ -81,7 +83,7 @@ export function GrowthChart({ data, benchmarkSymbol }: Props) {
                 scale={logScale ? "log" : "linear"}
                 domain={domain as [number | string, number | string]}
                 allowDataOverflow={logScale}
-                tickFormatter={(value: number) => formatMoney(value)}
+                tickFormatter={(value: number) => formatMoney(value, currency)}
                 tick={{ fontSize: 12 }}
                 width={72}
                 className="fill-muted-foreground"
@@ -89,7 +91,7 @@ export function GrowthChart({ data, benchmarkSymbol }: Props) {
               />
               <Tooltip
                 labelFormatter={(month) => monthLabel(month as string | null)}
-                formatter={(value) => formatMoney(typeof value === "number" ? value : null)}
+                formatter={(value) => formatMoney(typeof value === "number" ? value : null, currency)}
                 contentStyle={{
                   background: "var(--popover)",
                   color: "var(--popover-foreground)",
@@ -158,10 +160,10 @@ export function GrowthChart({ data, benchmarkSymbol }: Props) {
                       className="py-1 pr-3 text-right tabular-nums"
                       data-testid={`year-end-${row.year}`}
                     >
-                      {formatMoney(row.portfolio)}
+                      {formatMoney(row.portfolio, currency)}
                     </td>
                     <td className="py-1 text-right tabular-nums text-muted-foreground">
-                      {formatMoney(row.benchmark)}
+                      {formatMoney(row.benchmark, currency)}
                     </td>
                   </tr>
                 ))}

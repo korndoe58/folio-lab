@@ -5,11 +5,15 @@ import {
   type SeriesResult,
   type YearMonth,
 } from "@/types/series"
+import aotBk from "@/data/fixtures/aot-bk.json"
 import bnd from "@/data/fixtures/bnd.json"
+import cpallBk from "@/data/fixtures/cpall-bk.json"
 import downonly from "@/data/fixtures/downonly.json"
 import newfund from "@/data/fixtures/newfund.json"
 import rf from "@/data/fixtures/rf.json"
+import pttBk from "@/data/fixtures/ptt-bk.json"
 import spy from "@/data/fixtures/spy.json"
+import thbx from "@/data/fixtures/thbx.json"
 import uponly from "@/data/fixtures/uponly.json"
 import vnq from "@/data/fixtures/vnq.json"
 import vti from "@/data/fixtures/vti.json"
@@ -29,6 +33,11 @@ const FIXTURES: Record<string, Fixture> = {
   NEWFUND: newfund as Fixture,
   DOWNONLY: downonly as Fixture,
   UPONLY: uponly as Fixture,
+  // อัตราแลกเปลี่ยนและหุ้นไทย — จำเป็นเพื่อให้เดินเส้นทางแปลงค่าเงินในโหมดจำลองได้ (US-12..14)
+  "THB=X": thbx as Fixture,
+  "PTT.BK": pttBk as Fixture,
+  "CPALL.BK": cpallBk as Fixture,
+  "AOT.BK": aotBk as Fixture,
 }
 
 /** สัญลักษณ์พิเศษที่บังคับพฤติกรรมความล้มเหลว เพื่อให้เดินเส้นทาง error บนหน้าจอได้ */

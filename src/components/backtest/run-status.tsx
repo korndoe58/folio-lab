@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AnnualData, DrawdownData, GrowthData } from "@/lib/backtest/chart-data"
 import type { Summary } from "@/lib/backtest/summary"
+import type { Currency } from "@/data/currency"
 import { useLanguage } from "@/i18n"
 import { parseYearMonth, type MonthRange } from "@/types/series"
 import { AnnualSection } from "./annual-section"
@@ -23,6 +24,9 @@ export type RunState =
       drawdown: DrawdownData
       range: MonthRange
       benchmarkSymbol: string
+      currency: Currency
+      /** true เมื่อมีสินทรัพย์ถูกแปลงค่าเงิน — ต้องบอกผู้ใช้ตาม BR-CUR-05 */
+      converted: boolean
       clamped?: { symbol: string }
     }
   | { kind: "error"; messageKey: string; params?: Record<string, string>; retryable: boolean }
@@ -90,13 +94,24 @@ export function RunStatus({ state, onRetry }: { state: RunState; onRetry: () => 
         {t("summary.ready")}
       </p>
 
+      {state.converted ? (
+        <p className="text-sm text-muted-foreground" role="status">
+          {t("notice.converted", { currency: t(`currency.${state.currency}.inline`) })}
+        </p>
+      ) : null}
+
       <SummaryTable
         summary={state.summary}
         range={state.range}
         benchmarkSymbol={state.benchmarkSymbol}
+        currency={state.currency}
       />
 
-      <GrowthChart data={state.growth} benchmarkSymbol={state.benchmarkSymbol} />
+      <GrowthChart
+        data={state.growth}
+        benchmarkSymbol={state.benchmarkSymbol}
+        currency={state.currency}
+      />
 
       <AnnualSection data={state.annual} benchmarkSymbol={state.benchmarkSymbol} />
 

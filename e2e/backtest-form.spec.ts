@@ -41,8 +41,10 @@ test.describe("US-05 ฟอร์มตั้งค่าพอร์ต", () =>
     await expect(page.locator("#endYear")).toHaveValue("2026")
     await expect(page.locator("#startYear")).toHaveValue("2016")
     await expect(submit(page)).toBeEnabled()
-    // หน่วยเงินกำกับตาม BR-MVP-04 และคำเตือนตาม BR-MVP-02
-    await expect(page.getByText("ดอลลาร์สหรัฐ")).toBeVisible()
+    // ค่าเริ่มต้นเป็นเงินบาทตาม BR-CUR-01 และหน่วยกำกับตรงกับที่เลือก
+    await expect(page.locator("#baseCurrency")).toHaveValue("THB")
+    await expect(page.locator("label[for=amount]")).toContainText("บาท")
+    // คำเตือนตาม BR-MVP-02
     await expect(page.getByText("ผลตอบแทนในอดีตไม่ได้รับประกัน", { exact: false })).toBeVisible()
 
     await page.screenshot({ path: `${EVIDENCE}/form-empty-light.png`, fullPage: true })

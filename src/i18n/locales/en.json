@@ -35,14 +35,22 @@
     "weightTotal": "Total {sum}%",
     "suggested": "Commonly used symbols",
     "symbolFreeText": "Not in the suggestions. You can type any symbol",
-    "yearFreeText": "Not in the list. You can type any year"
+    "yearFreeText": "Not in the list. You can type any year",
+    "baseCurrency": "Show results in",
+    "currencyFixed": "Thai baht or US dollars only",
+    "symbolThaiHint": "For Thai stocks add .BK to the ticker, e.g. PTT.BK"
   },
   "symbols": {
     "vti": "Total US stock market",
     "vxus": "Total international stock market",
     "bnd": "US bonds",
     "vnq": "US real estate",
-    "spy": "500 largest US companies"
+    "spy": "500 largest US companies",
+    "ptt": "PTT",
+    "cpall": "CP All (7-Eleven)",
+    "aot": "Airports of Thailand",
+    "advanc": "Advanced Info Service (AIS)",
+    "kbank": "Kasikornbank"
   },
   "result": {
     "emptyTitle": "No backtest yet",
@@ -67,7 +75,8 @@
     "symbolDuplicate": "This symbol is already in the portfolio"
   },
   "notice": {
-    "rangeClamped": "The period was adjusted to {start} to {end} based on the data available for {symbol}"
+    "rangeClamped": "The period was adjusted to {start} to {end} based on the data available for {symbol}",
+    "converted": "All figures are shown in {currency}, converted at each month's exchange rate"
   },
   "error": {
     "dataLoad": "Could not load price data. Please try again",
@@ -184,6 +193,26 @@
     "global": {
       "name": "Globally diversified",
       "description": "US stocks, international stocks and bonds together"
+    },
+    "thaiAndWorld": {
+      "name": "Thai stocks and the world",
+      "description": "Thai stocks mixed with global funds, shown in baht"
     }
+  },
+  "currency": {
+    "THB": {
+      "name": "Thai baht",
+      "unit": "baht",
+      "inline": "Thai baht"
+    },
+    "USD": {
+      "name": "US dollars",
+      "unit": "US dollars",
+      "inline": "US dollars"
+    }
+  },
+  "symbolGroups": {
+    "global": "Global assets",
+    "thai": "Thai stocks"
   }
 }

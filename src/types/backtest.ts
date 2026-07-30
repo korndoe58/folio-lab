@@ -1,3 +1,5 @@
+import type { Currency } from "@/data/currency"
+
 export type PortfolioRow = {
   symbol: string
   /** น้ำหนักเป็นเปอร์เซ็นต์ (60 = 60%) เก็บเป็นข้อความเพราะผู้ใช้กำลังพิมพ์ */
@@ -10,6 +12,8 @@ export type BacktestConfig = {
   endYear: number
   amount: number
   benchmark: string
+  /** สกุลเงินที่ใช้มองผลลัพธ์ทั้งหมด (BR-CUR-01) */
+  baseCurrency: Currency
 }
 
 /** ขอบเขตของฟอร์มตาม BR-CFG-02, BR-CFG-08 */
@@ -19,6 +23,14 @@ export const MIN_AMOUNT = 1
 export const MAX_AMOUNT = 1_000_000_000
 export const DEFAULT_AMOUNT = 10_000
 export const DEFAULT_BENCHMARK = "SPY"
+/** ฟอร์มเปล่าเริ่มที่เงินบาท เพราะผู้ใช้เป้าหมายวางแผนการเงินเป็นเงินบาท (BR-THB-02) */
+export const DEFAULT_BASE_CURRENCY: Currency = "THB"
+/**
+ * ลิงก์ที่ไม่ระบุสกุลเงินถือเป็นดอลลาร์ (BR-CUR-03) — ต่างจากค่าเริ่มต้นของฟอร์มโดยตั้งใจ
+ * เพราะลิงก์ทุกอันที่แชร์ออกไปก่อนมีตัวเลือกนี้ คำนวณด้วยดอลลาร์
+ */
+export const LEGACY_LINK_CURRENCY: Currency = "USD"
+export const CURRENCY_OPTIONS: Currency[] = ["THB", "USD"]
 /** ช่วงเวลาเริ่มต้น = 10 ปีล่าสุด ตาม BR-CFG-16 */
 export const DEFAULT_YEARS_BACK = 10
 export const WEIGHT_SUM_TOLERANCE = 0.01

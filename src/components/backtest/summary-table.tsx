@@ -3,6 +3,7 @@
 import { Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { formatMoney, formatPercent, formatRatio } from "@/lib/backtest/format"
+import type { Currency } from "@/data/currency"
 import type { Summary, SummaryRow } from "@/lib/backtest/summary"
 import { useLanguage } from "@/i18n"
 import { parseYearMonth, type MonthRange } from "@/types/series"
@@ -11,9 +12,10 @@ type Props = {
   summary: Summary
   range: MonthRange
   benchmarkSymbol: string
+  currency: Currency
 }
 
-export function SummaryTable({ summary, range, benchmarkSymbol }: Props) {
+export function SummaryTable({ summary, range, benchmarkSymbol, currency }: Props) {
   const { t } = useLanguage()
 
   const monthLabel = (month: string) => {
@@ -23,7 +25,7 @@ export function SummaryTable({ summary, range, benchmarkSymbol }: Props) {
 
   const show = (row: SummaryRow, column: "portfolio" | "benchmark") => {
     const value = row[column]
-    if (row.format === "money") return formatMoney(value)
+    if (row.format === "money") return formatMoney(value, currency)
     if (row.format === "percent") return formatPercent(value)
     return formatRatio(value)
   }

@@ -14,7 +14,14 @@ export type DemoPortfolio = {
  * และใช้ช่วงปี 2015–2025 ที่ทุกสัญลักษณ์ในชุดมีข้อมูลครบ เพื่อไม่ให้ผู้ใช้ครั้งแรก
  * เจอข้อความแจ้งว่าช่วงเวลาถูกย่อตั้งแต่จอแรก (BR-DMO-08)
  */
-const SHARED = { startYear: 2015, endYear: 2025, amount: 10_000, benchmark: "SPY" } as const
+/** สามชุดเดิมเป็นสินทรัพย์ดอลลาร์ล้วน จึงระบุฐานดอลลาร์ให้ค่าเท่าเดิมทุกหลัก */
+const SHARED = {
+  startYear: 2015,
+  endYear: 2025,
+  amount: 10_000,
+  benchmark: "SPY",
+  baseCurrency: "USD",
+} as const
 
 export const DEMO_PORTFOLIOS: DemoPortfolio[] = [
   {
@@ -39,6 +46,22 @@ export const DEMO_PORTFOLIOS: DemoPortfolio[] = [
         { symbol: "VTI", weight: "60" },
         { symbol: "VXUS", weight: "25" },
         { symbol: "BND", weight: "15" },
+      ],
+    },
+  },
+  {
+    // ชุดที่ทำให้ผู้ใช้เห็นเองว่าใส่หุ้นไทยได้ (BR-SET-04) — ฐานเงินบาทเพราะเป็นพอร์ตของคนไทย
+    key: "thaiAndWorld",
+    config: {
+      startYear: 2015,
+      endYear: 2025,
+      amount: 350_000,
+      benchmark: "SPY",
+      baseCurrency: "THB",
+      assets: [
+        { symbol: "PTT.BK", weight: "30" },
+        { symbol: "CPALL.BK", weight: "30" },
+        { symbol: "VTI", weight: "40" },
       ],
     },
   },

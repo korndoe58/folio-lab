@@ -6,8 +6,21 @@ import { hasIssues, validateConfig } from "./validation"
 const LAST_CLOSED_YEAR = 2026
 
 describe("พอร์ตตัวอย่างหน้าแรก (US-11)", () => {
-  it("มีสามชุดตามที่การ์ดกำหนด", () => {
-    expect(DEMO_PORTFOLIOS.map((p) => p.key)).toEqual(["balanced", "allUsStocks", "global"])
+  it("มีสี่ชุด โดยชุดสุดท้ายเป็นพอร์ตที่มีหุ้นไทย (BR-SET-04)", () => {
+    expect(DEMO_PORTFOLIOS.map((p) => p.key)).toEqual([
+      "balanced",
+      "allUsStocks",
+      "global",
+      "thaiAndWorld",
+    ])
+  })
+
+  it("ชุดที่มีหุ้นไทยใช้ฐานเงินบาท ส่วนชุดสินทรัพย์ต่างประเทศใช้ฐานดอลลาร์ (BR-SET-05)", () => {
+    const byKey = Object.fromEntries(DEMO_PORTFOLIOS.map((p) => [p.key, p.config]))
+    expect(byKey.thaiAndWorld.baseCurrency).toBe("THB")
+    for (const key of ["balanced", "allUsStocks", "global"]) {
+      expect(byKey[key].baseCurrency, `ชุด ${key} ต้องได้ผลเท่าเดิมทุกหลัก`).toBe("USD")
+    }
   })
 
   it.each(DEMO_PORTFOLIOS)("ชุด $key ผ่านการตรวจของฟอร์มโดยไม่มีข้อผิดพลาด", (portfolio) => {
@@ -23,7 +36,7 @@ describe("พอร์ตตัวอย่างหน้าแรก (US-11)",
     expect(config.assets.length).toBeGreaterThan(0)
     expect(config.startYear).toBe(2015)
     expect(config.endYear).toBe(2025)
-    expect(config.amount).toBe(10_000)
+    expect(config.amount).toBeGreaterThan(0)
     expect(config.benchmark).toBe("SPY")
 
     const total = config.assets.reduce((sum, a) => sum + Number(a.weight), 0)

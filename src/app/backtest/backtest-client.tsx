@@ -7,7 +7,6 @@ import { PortfolioForm } from "@/components/backtest/portfolio-form"
 import { RunStatus, type RunState } from "@/components/backtest/run-status"
 import { getBrowserProvider } from "@/data/providers/browser"
 import { loadPortfolioSeries } from "@/data/market/load-portfolio"
-import type { Currency } from "@/data/currency"
 import { decodeConfig, defaultConfig, encodeConfig, isEmptyParams } from "@/lib/backtest/url"
 import {
   filledRows,
@@ -30,11 +29,6 @@ const LAST_CLOSED_YEAR = Number(LAST_CLOSED_MONTH.split("-")[0])
 /** อัตราปราศจากความเสี่ยงชุดที่ freeze ไว้ ใช้คำนวณ Sharpe และ Sortino (BR-ENG-11) */
 const RISK_FREE = rfFixture.returns
 
-/**
- * สกุลเงินฐานของพอร์ต — รอบนี้ตรึงเป็นดอลลาร์ เพื่อให้ลิงก์ที่แชร์ไปแล้วทั้งหมดได้ผลเท่าเดิม
- * ตัวเลือกให้ผู้ใช้เปลี่ยนเองเป็นงานของ US-13
- */
-const BASE_CURRENCY: Currency = "USD"
 
 export function BacktestClient() {
   const params = useSearchParams()
@@ -97,7 +91,7 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
         symbols: rows.map((r) => r.symbol.trim().toUpperCase()),
         benchmark: target.benchmark,
         range,
-        base: BASE_CURRENCY,
+        base: target.baseCurrency,
       })
       if (seq !== runSeq.current) return
 
@@ -158,6 +152,10 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
       setRun({
         kind: "ready",
         summary,
+        // สกุลเงินมาจากค่าที่ใช้รันจริง ไม่ใช่ค่าที่กำลังเลือกอยู่ในฟอร์ม
+        // หน่วยบนจอจึงไม่เปลี่ยนก่อนตัวเลขชุดใหม่จะมา (EC-CUR-02)
+        currency: target.baseCurrency,
+        converted: loaded.converted,
         growth: buildGrowthData(portfolio.returns, benchmarkReturns, target.amount),
         annual: buildAnnualData(portfolio.returns, benchmarkReturns),
         drawdown: buildDrawdownData(portfolio.returns, benchmarkReturns),

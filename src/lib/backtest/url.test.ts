@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest"
 import { decodeConfig, defaultConfig, encodeConfig, isEmptyParams } from "./url"
+import { DEFAULT_BASE_CURRENCY } from "@/types/backtest"
 
 const LAST_CLOSED_YEAR = 2026
 const params = (query: string) => new URLSearchParams(query)
@@ -20,6 +21,7 @@ describe("US-06 อ่านค่าจากลิงก์", () => {
       ],
       startYear: 2015,
       endYear: 2025,
+      baseCurrency: "USD",
       amount: 10_000,
       benchmark: "SPY",
     })
@@ -42,7 +44,38 @@ describe("US-06 อ่านค่าจากลิงก์", () => {
 
     const result = decodeConfig(params(""), LAST_CLOSED_YEAR)
     expect(result.ok).toBe(true)
-    if (result.ok) expect(result.config).toEqual(defaultConfig(LAST_CLOSED_YEAR))
+    // เหมือนฟอร์มเปล่าทุกช่อง ยกเว้นสกุลเงินซึ่งเป็นกฎของลิงก์ (ดูเทสต์ถัดไป)
+    if (result.ok) {
+      expect({ ...result.config, baseCurrency: DEFAULT_BASE_CURRENCY }).toEqual(
+        defaultConfig(LAST_CLOSED_YEAR),
+      )
+    }
+  })
+
+  test("BR-CUR-03 ลิงก์ที่ไม่ระบุสกุลเงิน ถือเป็นดอลลาร์ เพื่อไม่ให้ลิงก์ที่แชร์ไปแล้วเปลี่ยนค่า", () => {
+    // ลิงก์จริงจากหลักฐานของ S8 ซึ่งสร้างขึ้นก่อนมีตัวเลือกสกุลเงิน
+    const legacy = "assets=VTI:60,BND:40&start=2015&end=2025&amount=10000&benchmark=SPY"
+    const result = decodeConfig(params(legacy), LAST_CLOSED_YEAR)
+
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.config.baseCurrency).toBe("USD")
+  })
+
+  test("BR-CUR-01 ฟอร์มเปล่าเริ่มที่เงินบาท ต่างจากกฎของลิงก์เก่าโดยตั้งใจ", () => {
+    expect(defaultConfig(LAST_CLOSED_YEAR).baseCurrency).toBe("THB")
+  })
+
+  test("EC-CUR-01 สกุลเงินที่ไม่รู้จักในลิงก์ ถือว่าอ่านโครงสร้างไม่ออก", () => {
+    const result = decodeConfig(params("assets=VTI:100&base=EUR"), LAST_CLOSED_YEAR)
+    expect(result.ok).toBe(false)
+  })
+
+  test("อ่านสกุลเงินจากลิงก์ได้ทั้งสองค่า ไม่สนตัวพิมพ์", () => {
+    for (const [raw, expected] of [["THB", "THB"], ["usd", "USD"]] as const) {
+      const result = decodeConfig(params(`assets=VTI:100&base=${raw}`), LAST_CLOSED_YEAR)
+      expect(result.ok).toBe(true)
+      if (result.ok) expect(result.config.baseCurrency).toBe(expected)
+    }
   })
 
   test("AC-URL-05 น้ำหนักไม่ใช่ตัวเลข ถือว่าโครงสร้างเสีย", () => {
@@ -117,11 +150,14 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
       ],
       startYear: 2015,
       endYear: 2025,
+      baseCurrency: "USD",
       amount: 10_000,
       benchmark: "SPY",
     })
 
-    expect(encoded).toBe("assets=VTI:60,BND:40&start=2015&end=2025&amount=10000&benchmark=SPY")
+    expect(encoded).toBe(
+      "assets=VTI:60,BND:40&start=2015&end=2025&amount=10000&benchmark=SPY&base=USD",
+    )
   })
 
   test("แปลงไปกลับได้ค่าเดิมเสมอ", () => {
@@ -136,6 +172,7 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
       endYear: 2026,
       amount: 25_000,
       benchmark: "SPY",
+      baseCurrency: "THB" as const,
     }
 
     const result = decodeConfig(params(encodeConfig(config)), LAST_CLOSED_YEAR)
@@ -149,6 +186,7 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
         { symbol: "VTI", weight: "100" },
         { symbol: "", weight: "" },
       ],
+      baseCurrency: "USD",
       startYear: 2020,
       endYear: 2026,
       amount: 10_000,
@@ -162,6 +200,6 @@ describe("US-06 เขียนค่าลงลิงก์", () => {
     const encoded = encodeConfig(defaultConfig(LAST_CLOSED_YEAR))
     const keys = [...new URLSearchParams(encoded).keys()].sort()
 
-    expect(keys).toEqual(["amount", "assets", "benchmark", "end", "start"])
+    expect(keys).toEqual(["amount", "assets", "base", "benchmark", "end", "start"])
   })
 })

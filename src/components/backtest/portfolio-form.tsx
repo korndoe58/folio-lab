@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ComboboxField } from "@/components/backtest/combobox-field"
-import { SUGGESTED_SYMBOLS } from "@/lib/backtest/suggested-symbols"
+import { SUGGESTED_SYMBOLS, SYMBOL_GROUPS } from "@/lib/backtest/suggested-symbols"
 import { evenWeights, weightSum, type FormIssues, type ValidationIssue } from "@/lib/backtest/validation"
 import { emptyRow } from "@/lib/backtest/url"
-import { MAX_ASSETS, MIN_ASSETS, type BacktestConfig } from "@/types/backtest"
+import { CURRENCY_OPTIONS, MAX_ASSETS, MIN_ASSETS, type BacktestConfig } from "@/types/backtest"
 import { useLanguage } from "@/i18n"
 
 const MESSAGE_KEY: Record<string, string> = {
@@ -58,8 +58,11 @@ export function PortfolioForm({
   const { t } = useLanguage()
 
   const symbolItems = SUGGESTED_SYMBOLS.map((item) => item.symbol)
+  // คำอธิบายบอกทั้งชื่อและกลุ่ม เพื่อให้เห็นว่ามีหุ้นไทยให้เลือกด้วย (BR-SET-01)
   const describeSymbol = (symbol: string) => {
+    const group = SYMBOL_GROUPS.find((g) => g.symbols.some((s) => s.symbol === symbol))
     const match = SUGGESTED_SYMBOLS.find((item) => item.symbol === symbol)
+    if (match && group) return `${t(match.labelKey)} · ${t(group.labelKey)}`
     return match ? t(match.labelKey) : undefined
   }
   const yearItems = Array.from({ length: YEAR_CHOICES }, (_, i) => String(lastClosedYear - i))
@@ -176,11 +179,28 @@ export function PortfolioForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           id="amount"
-          label={`${t("form.amount")} (${t("form.amountUnit")})`}
+          label={`${t("form.amount")} (${t(`currency.${config.baseCurrency}.unit`)})`}
           value={String(config.amount)}
           message={issueMessage(issues.amount, t)}
           inputMode="numeric"
           onChange={(value) => onChange({ ...config, amount: Number(value) })}
+        />
+        <ComboboxFieldRow
+          id="baseCurrency"
+          label={t("form.baseCurrency")}
+          value={config.baseCurrency}
+          items={[...CURRENCY_OPTIONS]}
+          describe={(code) => t(`currency.${code}.name`)}
+          emptyLabel={t("form.currencyFixed")}
+          message={null}
+          onChange={(value) =>
+            onChange({
+              ...config,
+              baseCurrency: CURRENCY_OPTIONS.includes(value as never)
+                ? (value as typeof config.baseCurrency)
+                : config.baseCurrency,
+            })
+          }
         />
         <ComboboxFieldRow
           id="benchmark"

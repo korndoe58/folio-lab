@@ -1,11 +1,15 @@
 import {
+  CURRENCY_OPTIONS,
   DEFAULT_AMOUNT,
+  DEFAULT_BASE_CURRENCY,
   DEFAULT_BENCHMARK,
   DEFAULT_YEARS_BACK,
+  LEGACY_LINK_CURRENCY,
   MAX_ASSETS,
   type BacktestConfig,
   type PortfolioRow,
 } from "@/types/backtest"
+import type { Currency } from "@/data/currency"
 
 /**
  * แปลงค่าที่ตั้งไว้ไปกลับกับลิงก์ (US-06)
@@ -29,6 +33,7 @@ export function defaultConfig(lastClosedYear: number): BacktestConfig {
     endYear: lastClosedYear,
     amount: DEFAULT_AMOUNT,
     benchmark: DEFAULT_BENCHMARK,
+    baseCurrency: DEFAULT_BASE_CURRENCY,
   }
 }
 
@@ -38,7 +43,7 @@ export function emptyRow(): PortfolioRow {
 
 /** ลิงก์ไม่มีค่าใดเลยหรือไม่ — กรณีนี้ถือเป็นฟอร์มเปล่าปกติ ไม่ใช่ข้อผิดพลาด (EC-URL-01) */
 export function isEmptyParams(params: UrlParams): boolean {
-  return ["assets", "start", "end", "amount", "benchmark"].every((k) => params.get(k) === null)
+  return ["assets", "start", "end", "amount", "benchmark", "base"].every((k) => params.get(k) === null)
 }
 
 export function decodeConfig(params: UrlParams, lastClosedYear: number): DecodeResult {
@@ -50,6 +55,8 @@ export function decodeConfig(params: UrlParams, lastClosedYear: number): DecodeR
   const endYear = parseYear(params.get("end"))
   const amount = parseAmount(params.get("amount"))
   const benchmark = params.get("benchmark")?.trim().toUpperCase() || null
+  const rawBase = params.get("base")
+  const base = parseCurrency(rawBase)
 
   const config: BacktestConfig = {
     assets: assets?.rows.length ? assets.rows : fallback.assets,
@@ -57,6 +64,8 @@ export function decodeConfig(params: UrlParams, lastClosedYear: number): DecodeR
     endYear: endYear ?? fallback.endYear,
     amount: amount ?? fallback.amount,
     benchmark: benchmark ?? fallback.benchmark,
+    // ลิงก์ที่ไม่ระบุสกุลเงินคือลิงก์ที่แชร์ไปก่อนมีตัวเลือกนี้ จึงต้องเป็นดอลลาร์เหมือนเดิม (BR-CUR-03)
+    baseCurrency: base ?? LEGACY_LINK_CURRENCY,
   }
 
   const structurallyBroken =
@@ -65,7 +74,9 @@ export function decodeConfig(params: UrlParams, lastClosedYear: number): DecodeR
     (rawAssets !== null && (assets?.rows.length ?? 0) > MAX_ASSETS) ||
     (params.get("start") !== null && startYear === null) ||
     (params.get("end") !== null && endYear === null) ||
-    (params.get("amount") !== null && amount === null)
+    (params.get("amount") !== null && amount === null) ||
+    // สกุลเงินที่ไม่รู้จักถือว่าอ่านโครงสร้างไม่ออก (EC-CUR-01)
+    (rawBase !== null && base === null)
 
   return structurallyBroken ? { ok: false, partial: config } : { ok: true, config }
 }
@@ -82,9 +93,16 @@ export function encodeConfig(config: BacktestConfig): string {
     end: String(config.endYear),
     amount: String(config.amount),
     benchmark: config.benchmark.trim().toUpperCase(),
+    base: config.baseCurrency,
   })
   // URLSearchParams เข้ารหัส , และ : ซึ่งอ่านยากในแถบที่อยู่ — คืนกลับให้อ่านออก
   return query.toString().replace(/%2C/g, ",").replace(/%3A/g, ":")
+}
+
+function parseCurrency(raw: string | null): Currency | null {
+  if (raw === null) return null
+  const value = raw.trim().toUpperCase()
+  return CURRENCY_OPTIONS.includes(value as Currency) ? (value as Currency) : null
 }
 
 type ParsedAssets = { rows: PortfolioRow[]; broken: boolean }

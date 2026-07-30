@@ -35,7 +35,7 @@ const find = (metric: string): SummaryRow => {
 
 const shown = (row: SummaryRow, column: "portfolio" | "benchmark") => {
   const value = row[column]
-  if (row.format === "money") return formatMoney(value)
+  if (row.format === "money") return formatMoney(value, "USD")
   if (row.format === "percent") return formatPercent(value)
   return formatRatio(value)
 }
@@ -121,17 +121,18 @@ describe("US-07 ค่าที่คำนวณไม่ได้", () => {
   })
 
   test("ค่าที่ไม่มีต้องไม่ถูกแสดงเป็นศูนย์", () => {
-    expect(formatMoney(null)).toBe(NO_VALUE)
+    expect(formatMoney(null, "USD")).toBe(NO_VALUE)
     expect(formatPercent(null)).toBe(NO_VALUE)
     expect(formatRatio(null)).toBe(NO_VALUE)
   })
 })
 
 describe("BR-MVP-04 รูปแบบตัวเลข", () => {
-  test("จำนวนเงินเป็นจำนวนเต็ม คั่นหลักพัน พร้อมสกุลดอลลาร์", () => {
-    expect(formatMoney(41_515.37)).toBe("$41,515")
-    expect(formatMoney(1_234_567)).toBe("$1,234,567")
-    expect(formatMoney(0)).toBe("$0")
+  test("จำนวนเงินเป็นจำนวนเต็ม คั่นหลักพัน พร้อมสัญลักษณ์ของสกุลเงินฐาน", () => {
+    expect(formatMoney(41_515.37, "USD")).toBe("$41,515")
+    expect(formatMoney(1_234_567, "USD")).toBe("$1,234,567")
+    expect(formatMoney(0, "USD")).toBe("$0")
+    expect(formatMoney(41_515.37, "THB"), "สกุลบาทใช้สัญลักษณ์ของตัวเอง").toBe("฿41,515")
   })
 
   test("เปอร์เซ็นต์สองตำแหน่ง รวมค่าติดลบ", () => {

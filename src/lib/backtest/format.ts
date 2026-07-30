@@ -1,13 +1,22 @@
+import type { Currency } from "@/data/currency"
+
 /**
  * รูปแบบการแสดงตัวเลขตาม BR-MVP-04
  * ค่าที่คำนวณไม่ได้แสดงเป็นขีด ไม่ใช่ 0 (BR-SUM-06)
  */
 export const NO_VALUE = "—"
 
-/** จำนวนเงินเป็นจำนวนเต็ม คั่นหลักพัน พร้อมกำกับสกุลดอลลาร์สหรัฐ */
-export function formatMoney(value: number | null): string {
+const CURRENCY_MARK: Record<Currency, string> = { THB: "฿", USD: "$" }
+
+/**
+ * จำนวนเงินเป็นจำนวนเต็ม คั่นหลักพัน พร้อมกำกับสกุลเงินฐาน (BR-CUR-04, BR-THB-10)
+ *
+ * สกุลเงินเป็นพารามิเตอร์บังคับโดยตั้งใจ — ทุกจุดที่แสดงจำนวนเงินจึงถูกบังคับให้ระบุว่าเป็นสกุลอะไร
+ * ตัวตรวจชนิดข้อมูลจะชี้จุดที่ลืมให้เอง แทนที่จะต้องไล่ดูด้วยตา
+ */
+export function formatMoney(value: number | null, currency: Currency): string {
   if (value === null || !Number.isFinite(value)) return NO_VALUE
-  return `$${Math.round(value).toLocaleString("en-US")}`
+  return `${CURRENCY_MARK[currency]}${Math.round(value).toLocaleString("en-US")}`
 }
 
 /** เปอร์เซ็นต์ทศนิยม 2 ตำแหน่ง รับค่าเป็นสัดส่วน (0.1032 → "10.32%") */
