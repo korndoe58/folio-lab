@@ -45,6 +45,11 @@ export type PortfolioResult = {
   withdrawals: number[]
   /** เดือนที่ถูกถอนจนหมด — null เมื่อยังไม่หมด (BR-CMP-50) */
   depletedAt: YearMonth | null
+  /**
+   * น้ำหนักจริงของแต่ละสินทรัพย์ ณ ต้นเดือนนั้น เรียงตามลำดับเดือนใน `returns`
+   * — ค่าที่ลูปคำนวณอยู่แล้ว ส่งออกมาให้ส่วนแบ่งผลตอบแทนใช้ ([PD-023](../../docs/product/decision-log.md))
+   */
+  weights: number[][]
 }
 
 const EMPTY: PortfolioResult = {
@@ -56,6 +61,7 @@ const EMPTY: PortfolioResult = {
   deposits: [],
   withdrawals: [],
   depletedAt: null,
+  weights: [],
 }
 
 /**
@@ -101,8 +107,16 @@ export function portfolioReturns(
   const values: GrowthPoint[] = [{ month: null, value }]
   const deposits: number[] = []
   const withdrawals: number[] = []
+  const monthlyWeights: number[][] = []
 
   months.forEach((month, index) => {
+    /**
+     * น้ำหนักที่ "ทำงาน" ในเดือนนี้คือน้ำหนัก**ก่อน**ราคาขยับ — ส่วนแบ่งผลตอบแทนจึงต้องใช้ตัวนี้
+     * คู่กับผลตอบแทนของเดือนเดียวกัน (BR-RSK-35) · เก็บสำเนาไว้เฉย ๆ ไม่มีการคำนวณใหม่
+     * และไม่มีสูตรใดถูกแตะ ([PD-023](../../docs/product/decision-log.md))
+     */
+    monthlyWeights.push([...weights])
+
     // 1–3 · ผลตอบแทนของเดือน คิดจากน้ำหนักก่อนหน้า ก่อนเงินเข้าออกเสมอ
     const grown = weights.map((weight, i) => {
       // ทุกเดือนในช่วงร่วมต้องมีค่าครบทุกสินทรัพย์อยู่แล้ว แต่กันไว้ไม่ให้กลายเป็น NaN
@@ -162,6 +176,7 @@ export function portfolioReturns(
     deposits,
     withdrawals,
     depletedAt,
+    weights: monthlyWeights,
   }
 }
 

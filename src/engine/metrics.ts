@@ -62,18 +62,18 @@ export function sortino(returns: MonthlyReturn[], riskFree: MonthlyReturn[]): nu
 }
 
 /** ผลตอบแทนส่วนเกิน = ผลตอบแทนพอร์ต − อัตราปราศจากความเสี่ยงของเดือนเดียวกัน (BR-ENG-11) */
-function excessReturns(returns: MonthlyReturn[], riskFree: MonthlyReturn[]): number[] {
+export function excessReturns(returns: MonthlyReturn[], riskFree: MonthlyReturn[]): number[] {
   const rfByMonth = new Map<YearMonth, number>()
   for (const item of riskFree) rfByMonth.set(item.month, item.value)
   return returns.map((r) => r.value - (rfByMonth.get(r.month) ?? 0))
 }
 
-function mean(values: number[]): number {
+export function mean(values: number[]): number {
   return values.reduce((sum, v) => sum + v, 0) / values.length
 }
 
 /** ส่วนเบี่ยงเบนมาตรฐานแบบตัวอย่าง (ตัวหาร n−1) */
-function sampleStdev(values: number[]): number | null {
+export function sampleStdev(values: number[]): number | null {
   if (values.length < 2) return null
   const avg = mean(values)
   const variance = values.reduce((sum, v) => sum + (v - avg) ** 2, 0) / (values.length - 1)

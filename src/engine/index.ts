@@ -53,3 +53,20 @@ export {
   type DrawdownPeriod,
   type UnderwaterPoint,
 } from "./drawdown"
+export {
+  alpha,
+  beta,
+  captureRatios,
+  informationRatio,
+  rSquared,
+  trackingError,
+  type CaptureRatios,
+} from "./relative"
+export {
+  analyticalVaR,
+  calmar,
+  conditionalVaR,
+  excessKurtosis,
+  historicalVaR,
+  skewness,
+} from "./tail"

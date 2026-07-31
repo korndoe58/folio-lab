@@ -1,5 +1,6 @@
 "use client"
 
+import { Fragment } from "react"
 import { Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { CopyLink } from "@/components/backtest/copy-link"
@@ -87,11 +88,26 @@ export function SummaryTable({
             </tr>
           </thead>
           <tbody data-testid="summary-rows">
-            {summary.rows.map((row) => {
+            {summary.rows.map((row, rowIndex) => {
               const label = t(`metric.${row.metric}.label`)
+              // หัวกลุ่มโผล่ตอนกลุ่มเปลี่ยน — ตาราง 22 แถวต้องมีที่พักสายตา (US-30, US-31)
+              const startsGroup = row.group && row.group !== summary.rows[rowIndex - 1]?.group
 
               return (
-                <tr key={row.metric} className="border-b last:border-b-0">
+                <Fragment key={row.metric}>
+                  {startsGroup ? (
+                    <tr className="border-b bg-muted/20">
+                      <th
+                        scope="colgroup"
+                        colSpan={portfolioNames.length + 2}
+                        className="px-4 py-1.5 text-left text-xs font-medium text-muted-foreground"
+                        data-testid={`summary-group-${row.group}`}
+                      >
+                        {t(`summary.groups.${row.group}`)}
+                      </th>
+                    </tr>
+                  ) : null}
+                <tr className="border-b last:border-b-0">
                   <th scope="row" className="px-4 py-2 text-left font-normal">
                     <span className="inline-flex items-center gap-1.5">
                       {label}
@@ -148,6 +164,7 @@ export function SummaryTable({
                     ) : null}
                   </td>
                 </tr>
+                </Fragment>
               )
             })}
           </tbody>

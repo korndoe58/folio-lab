@@ -78,7 +78,10 @@ test.describe("US-16 ตั้งค่าและเทียบพอร์�
     await expect(header).toContainText("หุ้นล้วน")
     await expect(header).toContainText("ตลาด (SPY)")
 
-    await expect(page.getByTestId("summary-rows").locator("tr")).toHaveCount(9)
+    // เก้าแถวเดิมยังอยู่ครบ — เฟส 4 เพิ่มแถวต่อท้ายโดยตั้งใจ (BR-RSK-05)
+    await expect(
+      page.getByTestId("summary-rows").locator('tr th[scope="row"]'),
+    ).toHaveCount(22)
     for (const metric of ["endBalance", "cagr", "sharpe"]) {
       await expect(page.getByTestId(`portfolio0-${metric}`)).not.toBeEmpty()
       await expect(page.getByTestId(`portfolio1-${metric}`)).not.toBeEmpty()

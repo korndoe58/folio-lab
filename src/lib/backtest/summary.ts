@@ -1,17 +1,29 @@
 import {
+  alpha,
+  analyticalVaR,
   annualReturns,
   annualizedStdev,
+  beta,
   bestWorstFullYears,
   cagr,
+  calmar,
+  captureRatios,
+  conditionalVaR,
   coveredYears,
   cumulativeInflation,
   endBalance,
+  excessKurtosis,
+  historicalVaR,
+  informationRatio,
   maxDrawdown,
+  rSquared,
   realAnnualReturns,
   realCagr,
   realEndBalance,
   sharpe,
+  skewness,
   sortino,
+  trackingError,
   type InflationRate,
 } from "@/engine"
 import type { MonthlyReturn } from "@/types/series"
@@ -19,8 +31,15 @@ import type { MonthlyReturn } from "@/types/series"
 /** ชนิดของค่าในตาราง ใช้เลือกวิธีจัดรูปแบบที่หน้าจอ */
 export type MetricFormat = "money" | "percent" | "ratio" | "count"
 
-/** ทิศทางที่ถือว่า "ดีกว่า" — ความผันผวนและช่วงขาดทุนยิ่งใกล้ศูนย์ยิ่งดี */
-type Direction = "higher-better" | "closer-to-zero-better"
+/** ชื่อกลุ่มของแถว — หน้าจอใช้เป็นคีย์ i18n ของหัวกลุ่ม */
+const RELATIVE_GROUP = "benchmarkRelative"
+const TAIL_GROUP = "tailRisk"
+
+/**
+ * ทิศทางที่ถือว่า "ดีกว่า" — ความผันผวนและช่วงขาดทุนยิ่งใกล้ศูนย์ยิ่งดี
+ * `none` = สูงหรือต่ำไม่ได้แปลว่าดีกว่า (Beta · ความเบ้ · ความหนาของหาง) เครื่องมือจึงไม่ตัดสินแทน
+ */
+type Direction = "higher-better" | "closer-to-zero-better" | "none"
 
 /** ค่าของหนึ่งพอร์ตในหนึ่งแถว */
 export type SummaryCell = {
@@ -47,6 +66,11 @@ export type SummaryRow = {
   benchmarkYear?: number
   /** ค่านี้หักเงินเฟ้อแล้ว — หน้าจอต้องกำกับให้เห็น ไม่ใช่เปลี่ยนตัวเลขเงียบ ๆ (BR-INF-10) */
   adjusted?: boolean
+  /**
+   * กลุ่มของแถว — หน้าจอวาดหัวกลุ่มคั่นเมื่อกลุ่มเปลี่ยน
+   * ตารางโตเป็น 22 แถวตั้งแต่เฟส 4 การกวาดตาหาค่าจึงต้องมีที่พัก (US-30, US-31)
+   */
+  group?: string
 }
 
 /** ดัชนีเงินเฟ้อไทยและสถานะของตัวเลือกปรับเงินเฟ้อ (US-15) */
@@ -72,6 +96,24 @@ const DIRECTION: Record<string, Direction> = {
   maxDrawdown: "closer-to-zero-better",
   sharpe: "higher-better",
   sortino: "higher-better",
+
+  // เทียบกับตลาด (US-30)
+  beta: "none",
+  alpha: "higher-better",
+  rSquared: "none",
+  trackingError: "none",
+  informationRatio: "higher-better",
+  upsideCapture: "higher-better",
+  // ตามตลาดขาลงน้อยกว่า = ทนขาลงได้ดีกว่า
+  downsideCapture: "closer-to-zero-better",
+
+  // ความเสี่ยงหางและรูปร่างการกระจาย (US-31)
+  varHistorical: "closer-to-zero-better",
+  varAnalytical: "closer-to-zero-better",
+  cvar: "closer-to-zero-better",
+  skewness: "none",
+  kurtosis: "none",
+  calmar: "higher-better",
 }
 
 /**
@@ -146,6 +188,10 @@ export function assembleSummary(input: {
   const anyCashflow = outcomes.some((o) => o.hasCashflow)
   const anyCustomRebalance = outcomes.some((o) => o.customRebalance)
   const withdrawing = outcomes.some((o) => o.withdrawn > 0)
+
+  /** คำนวณค่าหนึ่งตัวให้ทุกพอร์ต แล้วห่อเป็นช่องของตาราง */
+  const relative = (compute: (series: MonthlyReturn[]) => number | null) =>
+    portfolios.map((series) => ({ value: compute(series) }))
 
   const rows: SummaryRow[] = [
     row("startAmount", "money", portfolios.map(() => ({ value: amount })), amount),
@@ -242,6 +288,54 @@ export function assembleSummary(input: {
           ),
         ]
       : []),
+
+    /**
+     * เทียบกับตลาด (US-30) — ทุกค่าคิดจากผลตอบแทน**ดิบ** ([PD-024](../../../docs/product/decision-log.md))
+     * ค่าของคอลัมน์ตัวเทียบคือตัวเทียบเทียบกับตัวเอง ซึ่งต้องได้ Beta 1 · Alpha 0 · R² 100%
+     * · capture 100% เสมอ (BR-RSK-18)
+     */
+    row("beta", "ratio", relative((series) => beta(series, benchmark)), 1, RELATIVE_GROUP),
+    row("alpha", "percent", relative((series) => alpha(series, benchmark)), 0, RELATIVE_GROUP),
+    row("rSquared", "percent", relative((series) => rSquared(series, benchmark)), 1, RELATIVE_GROUP),
+    row(
+      "trackingError",
+      "percent",
+      relative((series) => trackingError(series, benchmark)),
+      0,
+      RELATIVE_GROUP,
+    ),
+    row(
+      "informationRatio",
+      "ratio",
+      relative((series) => informationRatio(series, benchmark)),
+      null,
+      RELATIVE_GROUP,
+    ),
+    row(
+      "upsideCapture",
+      "percent",
+      relative((series) => captureRatios(series, benchmark).upside),
+      1,
+      RELATIVE_GROUP,
+    ),
+    row(
+      "downsideCapture",
+      "percent",
+      relative((series) => captureRatios(series, benchmark).downside),
+      1,
+      RELATIVE_GROUP,
+    ),
+
+    /**
+     * ความเสี่ยงหางและรูปร่างการกระจาย (US-31)
+     * **สามค่าแรกเป็นค่าต่อเดือน ไม่ใช่ต่อปี** — คำอธิบายในทะเบียนศัพท์บอกไว้แล้ว (BR-RSK-24)
+     */
+    row("varHistorical", "percent", relative(historicalVaR), historicalVaR(benchmark), TAIL_GROUP),
+    row("varAnalytical", "percent", relative(analyticalVaR), analyticalVaR(benchmark), TAIL_GROUP),
+    row("cvar", "percent", relative(conditionalVaR), conditionalVaR(benchmark), TAIL_GROUP),
+    row("skewness", "ratio", relative(skewness), skewness(benchmark), TAIL_GROUP),
+    row("kurtosis", "ratio", relative(excessKurtosis), excessKurtosis(benchmark), TAIL_GROUP),
+    row("calmar", "ratio", relative(calmar), calmar(benchmark), TAIL_GROUP),
   ]
 
   const inflationGapYears = [
@@ -261,11 +355,13 @@ function row(
   format: MetricFormat,
   cells: Array<{ value: number | null; year?: number; unavailableReason?: string }>,
   benchmark: number | null,
+  group?: string,
 ): SummaryRow {
   return {
     metric,
     format,
     benchmark,
+    ...(group ? { group } : {}),
     portfolios: cells.map((cell) => ({
       ...cell,
       comparison: compare(metric, cell.value, benchmark),
@@ -283,6 +379,8 @@ function compare(
   if (metric === "startAmount") return null
 
   const direction = DIRECTION[metric] ?? "higher-better"
+  // ค่าที่ไม่มีทิศ "ดีกว่า" ไม่ต้องติดป้ายเทียบ — ปล่อยให้ผู้ใช้ตีความเอง (ต่อจาก BR-CMP-23)
+  if (direction === "none") return null
   const [a, b] =
     direction === "closer-to-zero-better"
       ? [Math.abs(portfolio), Math.abs(benchmark)]

@@ -304,6 +304,58 @@
     "positiveWindowShare": {
       "label": "Share that made a gain",
       "hint": "Out of every possible starting point, the percentage that ended in a gain after holding the full stretch."
+    },
+    "beta": {
+      "label": "Beta",
+      "hint": "How many units this portfolio moves when the market moves one. Below one means it swings less than the market."
+    },
+    "alpha": {
+      "label": "Alpha (per year)",
+      "hint": "How much better or worse it did than expected for the risk taken, stated per year."
+    },
+    "rSquared": {
+      "label": "Market alignment",
+      "hint": "How much of the portfolio's movement is explained by the market. Higher means it tracks the market more closely."
+    },
+    "trackingError": {
+      "label": "Gap from the market (per year)",
+      "hint": "How unpredictably this portfolio drifts away from the market. Higher means less market-like."
+    },
+    "informationRatio": {
+      "label": "Return per unit of gap",
+      "hint": "For the ground it covered away from the market, was the return worth the added uncertainty?"
+    },
+    "upsideCapture": {
+      "label": "Following the market up",
+      "hint": "In months when the market rose, how much of that rise this portfolio captured."
+    },
+    "downsideCapture": {
+      "label": "Following the market down",
+      "hint": "In months when the market fell, how much of that fall this portfolio took. Lower means it holds up better."
+    },
+    "varHistorical": {
+      "label": "The worst 5% of months beat this",
+      "hint": "Of all months so far, 5% lost more than this figure."
+    },
+    "varAnalytical": {
+      "label": "The worst 5% of months (statistical)",
+      "hint": "The same figure derived from the shape of the distribution rather than counting actual months, useful for comparing the two."
+    },
+    "cvar": {
+      "label": "Average of the worst 5% of months",
+      "hint": "When those bad months do arrive, how much they lose on average. Answers how deep, not just how often."
+    },
+    "skewness": {
+      "label": "Skew",
+      "hint": "Which way returns lean. Negative means bad months tend to be worse than good months are good."
+    },
+    "kurtosis": {
+      "label": "Tail thickness",
+      "hint": "How often extreme months show up compared with normal. High means violent months happen more than expected."
+    },
+    "calmar": {
+      "label": "Return per unit of pain",
+      "hint": "Annual return against the deepest loss ever endured. Higher means return without having to stomach as much."
     }
   },
   "summary": {
@@ -319,7 +371,11 @@
     "noDownside": "Cannot be calculated because there are no losing months",
     "ready": "Backtest results are ready",
     "realMark": "after inflation",
-    "noMoneyWeighted": "No rate fits this pattern of money in and out."
+    "noMoneyWeighted": "No rate fits this pattern of money in and out.",
+    "groups": {
+      "benchmarkRelative": "Against the market",
+      "tailRisk": "Worst months and distribution shape"
+    }
   },
   "chart": {
     "growthHeading": "Portfolio growth",

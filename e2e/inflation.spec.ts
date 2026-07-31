@@ -110,7 +110,10 @@ test.describe("US-15 ตัวเลือกปรับเงินเฟ้�
 
     await expect(gapNotice(page)).toBeVisible()
     await expect(gapNotice(page)).toContainText("2026")
-    await expect(page.getByTestId("summary-rows").locator("tr")).toHaveCount(9)
+    // เก้าแถวเดิมยังอยู่ครบ — เฟส 4 เพิ่มแถวต่อท้ายโดยตั้งใจ (BR-RSK-05)
+    await expect(
+      page.getByTestId("summary-rows").locator('tr th[scope="row"]'),
+    ).toHaveCount(22)
 
     // ช่วงที่มีดัชนีครบต้องไม่ขึ้นข้อความนี้
     await page.goto(`/backtest?${COVERED}&real=1`)

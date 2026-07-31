@@ -42,15 +42,23 @@ test.describe("US-07 ตารางสรุปผล", () => {
     await expect(page.getByText("(2022)").first()).toBeVisible()
   })
 
-  test("BR-SUM-02 แถวครบ 9 แถวเรียงตามลำดับที่กำหนด", async ({ page }) => {
+  /**
+   * เก้าแถวของเฟส 0–1 ต้องอยู่ครบและเรียงเหมือนเดิม **ที่ต้นตาราง**
+   * เฟส 4 เพิ่มแถวต่อท้ายโดยตั้งใจ (BR-RSK-05) เทสต์จึงไม่ผูกกับจำนวนแถวทั้งหมด
+   */
+  test("BR-SUM-02 เก้าแถวเดิมอยู่ครบและเรียงตามลำดับที่กำหนด", async ({ page }) => {
     await page.goto(REFERENCE_LINK)
     await expect(page.getByRole("heading", { name: "สรุปผลการทดสอบ" })).toBeVisible({
       timeout: 15_000,
     })
 
     // เจาะจงตารางสรุป เพราะหน้าเดียวกันมีตารางของกราฟอีกสองตาราง
-    const labels = await page.getByTestId("summary-rows").locator("tr th").allInnerTexts()
-    expect(labels.map((l) => l.trim())).toEqual([
+    // `scope="row"` แยกแถวเมทริกออกจากหัวกลุ่มที่เป็น `scope="colgroup"`
+    const labels = await page
+      .getByTestId("summary-rows")
+      .locator('tr th[scope="row"]')
+      .allInnerTexts()
+    expect(labels.map((l) => l.trim()).slice(0, 9)).toEqual([
       "เงินตั้งต้น",
       "มูลค่าสุดท้าย",
       "ผลตอบแทนต่อปีแบบทบต้น",

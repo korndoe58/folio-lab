@@ -57,9 +57,24 @@ const shown = (row: SummaryRow, column: "portfolio" | "benchmark") => {
   return formatRatio(value)
 }
 
+/**
+ * แถวที่ตัวเทียบ **ไม่มีค่าโดยนิยาม** ไม่ใช่เพราะคำนวณพลาด
+ *
+ * ตัวเทียบเทียบกับตัวเองมีส่วนต่างเป็นศูนย์สนิท → ตัวหารของผลตอบแทนต่อส่วนต่างเป็นศูนย์
+ * → ต้องคืนไม่มีค่า ไม่ใช่อนันต์ (BR-RSK-14, BR-RSK-03)
+ */
+const NO_BENCHMARK_VALUE = new Set(["informationRatio"])
+
 describe("US-07 ค่าที่จะขึ้นบนตารางสรุป", () => {
-  test("BR-SUM-02 มี 9 แถวเรียงตามลำดับที่การ์ดกำหนด", () => {
-    expect(summary.rows.map((r) => r.metric)).toEqual([
+  /**
+   * เก้าแถวของเฟส 0–1 ต้องอยู่ครบและเรียงเหมือนเดิม **ที่ต้นตาราง** เสมอ
+   *
+   * ไม่ผูกกับจำนวนแถวทั้งหมด เพราะเฟส 4 เพิ่มแถวเข้ามาโดยตั้งใจตาม BR-RSK-05 —
+   * สิ่งที่การ์ด US-07 สัญญาไว้คือ "เก้าค่านี้มีอยู่และเรียงแบบนี้" ไม่ใช่ "ตารางจะไม่โตอีก"
+   * (บทเรียน ep#34: เทสต์ต้องยืนยันกฎที่การ์ดเขียน ไม่ใช่สภาพที่บังเอิญเป็นอยู่)
+   */
+  test("BR-SUM-02 เก้าแถวเดิมอยู่ครบและเรียงตามลำดับที่การ์ดกำหนด", () => {
+    expect(summary.rows.slice(0, 9).map((r) => r.metric)).toEqual([
       "startAmount",
       "endBalance",
       "cagr",
@@ -90,6 +105,7 @@ describe("US-07 ค่าที่จะขึ้นบนตารางสร�
     expect(shown(find("sortino"), "benchmark")).toBe("1.55")
 
     for (const row of summary.rows) {
+      if (NO_BENCHMARK_VALUE.has(row.metric)) continue
       expect(row.benchmark, `แถว ${row.metric} ต้องมีค่าของตัวเทียบ`).not.toBeNull()
     }
   })
@@ -157,9 +173,9 @@ describe("US-16 ตารางสรุปหลายพอร์ต", () => {
     compared.rows.find((r) => r.metric === metric)!
 
   test("AC-CMP-04 ทุกแถวมีค่าครบทุกพอร์ตและตัวเทียบ", () => {
-    expect(compared.rows).toHaveLength(9)
     for (const row of compared.rows) {
       expect(row.portfolios, `แถว ${row.metric}`).toHaveLength(2)
+      if (NO_BENCHMARK_VALUE.has(row.metric)) continue
       expect(row.benchmark, `แถว ${row.metric} ต้องมีค่าของตัวเทียบ`).not.toBeNull()
     }
   })
@@ -315,5 +331,79 @@ describe("BR-MVP-04 รูปแบบตัวเลข", () => {
   test("อัตราส่วนสองตำแหน่ง", () => {
     expect(formatRatio(0.78)).toBe("0.78")
     expect(formatRatio(-0.5)).toBe("-0.50")
+  })
+})
+
+describe("US-30 + US-31 แถวเมทริกเชิงลึกของเฟส 4", () => {
+  const find = (metric: string) => {
+    const row = summary.rows.find((r) => r.metric === metric)
+    if (!row) throw new Error(`ไม่พบแถว ${metric}`)
+    return row
+  }
+
+  test("AC-RSK-01 สิบสามแถวใหม่อยู่ครบและแบ่งเป็นสองกลุ่ม", () => {
+    const relative = summary.rows.filter((r) => r.group === "benchmarkRelative")
+    const tail = summary.rows.filter((r) => r.group === "tailRisk")
+
+    expect(relative.map((r) => r.metric)).toEqual([
+      "beta",
+      "alpha",
+      "rSquared",
+      "trackingError",
+      "informationRatio",
+      "upsideCapture",
+      "downsideCapture",
+    ])
+    expect(tail.map((r) => r.metric)).toEqual([
+      "varHistorical",
+      "varAnalytical",
+      "cvar",
+      "skewness",
+      "kurtosis",
+      "calmar",
+    ])
+  })
+
+  test("ค่าของพอร์ตอ้างอิงตรงกับที่ชั้นคำนวณยืนยันไว้", () => {
+    expect(shown(find("beta"), "portfolio")).toBe("0.79")
+    expect(shown(find("alpha"), "portfolio")).toBe("-1.36%")
+    expect(shown(find("upsideCapture"), "portfolio")).toBe("72.18%")
+    expect(shown(find("downsideCapture"), "portfolio")).toBe("85.25%")
+    expect(shown(find("varHistorical"), "portfolio")).toBe("5.24%")
+    expect(shown(find("cvar"), "portfolio")).toBe("7.04%")
+  })
+
+  /**
+   * ★ BR-RSK-18 — คอลัมน์ตัวเทียบของกลุ่มแรกคือตัวเทียบเทียบกับตัวเอง
+   * ค่าพวกนี้จึงต้องเป็นค่าคงที่ตามนิยาม ไม่ใช่ค่าที่คำนวณแล้วบังเอิญได้
+   */
+  test("BR-RSK-18 คอลัมน์ตัวเทียบของกลุ่มเทียบตลาดเป็นค่าตามนิยาม", () => {
+    expect(find("beta").benchmark).toBe(1)
+    expect(find("alpha").benchmark).toBe(0)
+    expect(find("rSquared").benchmark).toBe(1)
+    expect(find("trackingError").benchmark).toBe(0)
+    expect(find("upsideCapture").benchmark).toBe(1)
+    expect(find("downsideCapture").benchmark).toBe(1)
+    // ส่วนต่างเป็นศูนย์สนิท → ตัวหารศูนย์ → ไม่มีค่า (BR-RSK-14)
+    expect(find("informationRatio").benchmark).toBeNull()
+  })
+
+  /**
+   * ค่าที่สูงหรือต่ำไม่ได้แปลว่า "ดีกว่า" ต้องไม่ติดป้ายเทียบ
+   * มิฉะนั้นเครื่องมือจะตัดสินแทนผู้ใช้ในเรื่องที่ตัดสินไม่ได้ (ต่อจาก BR-CMP-23)
+   */
+  test("Beta · ความเบ้ · ความหนาของหาง ไม่ติดป้ายดีกว่าหรือแย่กว่า", () => {
+    for (const metric of ["beta", "rSquared", "trackingError", "skewness", "kurtosis"]) {
+      expect(find(metric).portfolios[0].comparison, `แถว ${metric}`).toBeNull()
+    }
+    // ส่วนค่าที่มีทิศจริงต้องยังติดป้ายอยู่
+    expect(find("alpha").portfolios[0].comparison).not.toBeNull()
+    expect(find("downsideCapture").portfolios[0].comparison).not.toBeNull()
+  })
+
+  test("VaR และ CVaR แสดงเป็นขนาดของการขาดทุน คือค่าบวก (BR-RSK-24)", () => {
+    for (const metric of ["varHistorical", "varAnalytical", "cvar"]) {
+      expect(find(metric).portfolios[0].value, `แถว ${metric}`).toBeGreaterThan(0)
+    }
   })
 })
