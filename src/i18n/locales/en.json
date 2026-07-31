@@ -533,5 +533,58 @@
     "caption": "Return and risk breakdown for {name}",
     "assetColumn": "Holding",
     "weightColumn": "Weight"
+  },
+  "monthsShort": {
+    "1": "Jan",
+    "2": "Feb",
+    "3": "Mar",
+    "4": "Apr",
+    "5": "May",
+    "6": "Jun",
+    "7": "Jul",
+    "8": "Aug",
+    "9": "Sep",
+    "10": "Oct",
+    "11": "Nov",
+    "12": "Dec"
+  },
+  "stress": {
+    "heading": "Which crises has this portfolio been through?",
+    "intro": "Each figure is the total return over that stretch, not converted to a yearly rate.",
+    "coverageNote": "Goes back to {year}, as far as the data reaches. Earlier crises are not in this table.",
+    "caption": "How each portfolio fared during past crises",
+    "eventColumn": "Episode",
+    "rangeColumn": "When",
+    "notCovered": "This portfolio's data does not reach that far back",
+    "events": {
+      "covid2020": {
+        "name": "The pandemic",
+        "what": "Markets around the world dropped sharply within two months as the outbreak spread to every continent."
+      },
+      "inflation2022": {
+        "name": "Rising prices and interest rates",
+        "what": "Shares and bonds fell together, which is unusual, so the usual way of spreading risk helped less than expected."
+      },
+      "selloff2018": {
+        "name": "The year-end sell-off",
+        "what": "Markets feared interest rates would rise too quickly, so they sold off through the final quarter."
+      },
+      "china2015": {
+        "name": "China and oil slump",
+        "what": "Chinese shares fell hard alongside a long slide in oil and other commodity prices."
+      }
+    }
+  },
+  "withdrawal": {
+    "heading": "How much can you take out without running dry?",
+    "intro": "The most you could take each year and still have money left for the whole stretch, no matter which month you started. Figured as a share of your starting amount, rising with the cost of living each year.",
+    "warning": "This is only what has happened before. It is not a promise that the future will look the same.",
+    "caption": "Safe withdrawal rate for each portfolio, by length of retirement",
+    "horizonColumn": "Length",
+    "years": "{count} years",
+    "windowCount": "Tested from {count} starting points",
+    "worstWindow": "Tightest started {month}",
+    "tooShort": "The period you picked is shorter than {years} years",
+    "aboveCeiling": "more than {rate}"
   }
 }

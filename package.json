@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "freeze": "node scripts/freeze-fixtures.mjs",
     "prod:snapshot": "node scripts/verify-production.mjs snapshot",
-    "prod:wait": "node scripts/verify-production.mjs wait"
+    "prod:wait": "node scripts/verify-production.mjs wait",
+    "check:e2e-selectors": "node scripts/check-e2e-selectors.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

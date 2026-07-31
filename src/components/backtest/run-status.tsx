@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AnnualData, DrawdownData, GrowthData, MonthlyRow } from "@/lib/backtest/chart-data"
 import type { RollingData } from "@/lib/backtest/rolling-data"
 import type { RiskData } from "@/lib/backtest/risk-data"
+import type { Phase4Data } from "@/lib/backtest/phase4-data"
 import type { Summary } from "@/lib/backtest/summary"
 import { resolvePortfolioNames } from "@/lib/backtest/portfolio-names"
 import type { Currency } from "@/data/currency"
@@ -18,6 +19,8 @@ import { MonthlySection } from "./monthly-section"
 import { RollingSection } from "./rolling-section"
 import { CorrelationSection } from "./correlation-section"
 import { DecompositionSection } from "./decomposition-section"
+import { StressSection } from "./stress-section"
+import { WithdrawalSection } from "./withdrawal-section"
 import { SummaryTable } from "./summary-table"
 
 export type RunState =
@@ -32,6 +35,10 @@ export type RunState =
       rolling: RollingData
       /** ตารางรายสินทรัพย์ของ US-28 และ US-29 */
       risk: RiskData
+      /** ช่วงวิกฤต (US-32) และอัตราถอนปลอดภัย (US-33) */
+      phase4: Phase4Data
+      /** เงินตั้งต้นที่ใช้รันจริง — อัตราถอนแปลงเป็นเงินต่อเดือนจากค่านี้ (BR-RSK-57) */
+      amount: number
       monthly: MonthlyRow[]
       range: MonthRange
       benchmarkSymbol: string
@@ -191,6 +198,20 @@ export function RunStatus({ state, onRetry }: { state: RunState; onRetry: () => 
       <DecompositionSection
         decompositions={state.risk.decompositions}
         portfolioNames={names}
+        currency={state.currency}
+      />
+
+      {/* สองส่วนสุดท้ายของเฟส 4 (US-32, US-33) */}
+      <StressSection
+        rows={state.phase4.stress}
+        portfolioNames={names}
+        benchmarkSymbol={state.benchmarkSymbol}
+      />
+
+      <WithdrawalSection
+        rows={state.phase4.withdrawal}
+        portfolioNames={names}
+        amount={state.amount}
         currency={state.currency}
       />
 

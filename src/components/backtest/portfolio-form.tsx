@@ -179,6 +179,7 @@ export function PortfolioForm({
 
   return (
     <form
+      data-testid="portfolio-form"
       className="flex flex-col gap-6"
       onSubmit={(event) => {
         event.preventDefault()

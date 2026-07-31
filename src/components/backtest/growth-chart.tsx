@@ -195,7 +195,10 @@ export function GrowthChart({
         <p className="sr-only">{t("chart.chartAlt")}</p>
 
         <details className="text-sm">
-          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+          <summary
+            className="cursor-pointer text-muted-foreground hover:text-foreground"
+            data-testid="growth-table-toggle"
+          >
             {t("chart.viewAsTable")}
           </summary>
           <div className="mt-2 overflow-x-auto">

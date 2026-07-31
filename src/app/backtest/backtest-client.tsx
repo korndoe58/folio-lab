@@ -24,6 +24,7 @@ import {
 } from "@/lib/backtest/chart-data"
 import { buildRollingData } from "@/lib/backtest/rolling-data"
 import { buildRiskData } from "@/lib/backtest/risk-data"
+import { buildPhase4Data } from "@/lib/backtest/phase4-data"
 import { assembleSummary, type PortfolioOutcome } from "@/lib/backtest/summary"
 import {
   buildFlows,
@@ -280,6 +281,16 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
           })),
           { symbol: target.benchmark.trim().toUpperCase(), returns: benchmarkReturns },
         ),
+        /**
+         * ช่วงวิกฤตและอัตราถอนปลอดภัย — คิดจากชุดผลตอบแทนของพอร์ตล้วน ๆ (BR-RSK-08, BR-RSK-59)
+         * จึงไม่รับทั้งเงินเข้าออกที่ผู้ใช้ตั้งไว้และตัวเลือกปรับเงินเฟ้อ
+         */
+        phase4: buildPhase4Data({
+          portfolios: portfolioSeries,
+          benchmark: benchmarkReturns,
+          inflationRates: INFLATION_RATES,
+        }),
+        amount: target.amount,
         monthly: buildMonthlyData(portfolioSeries, benchmarkReturns),
         range: shared.range,
         benchmarkSymbol: target.benchmark.trim().toUpperCase(),

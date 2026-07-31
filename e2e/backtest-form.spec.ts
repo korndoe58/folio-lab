@@ -173,7 +173,8 @@ test.describe("US-05 ฟอร์มตั้งค่าพอร์ต", () =>
     await submit(page).click()
     await submit(page).click({ force: true })
 
-    await expect(resultsReady(page)).toBeVisible({ timeout: 10_000 })
+    // ใช้งบเวลาปริยายของ config ซึ่งเผื่อไว้สำหรับการรันทั้งชุดพร้อมกันแล้ว
+    await expect(resultsReady(page)).toBeVisible()
     await expect(page).toHaveURL(/assets=VTI:60,BND:40/)
 
     await page.goBack()

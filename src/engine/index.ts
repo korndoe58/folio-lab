@@ -77,3 +77,10 @@ export {
   type CorrelationSeries,
 } from "./correlation"
 export { decomposePortfolio, type AssetContribution, type DecomposeAsset } from "./decompose"
+export {
+  STRESS_EARLIEST_YEAR,
+  STRESS_PERIODS,
+  stressReturn,
+  type StressPeriod,
+} from "./stress"
+export { WITHDRAWAL_YEARS, safeWithdrawalRate, type WithdrawalResult } from "./withdrawal"

@@ -73,7 +73,7 @@ export function SummaryTable({
             })}
           </caption>
           <thead>
-            <tr className="border-b bg-muted/40">
+            <tr className="border-b bg-muted/40" data-testid="summary-header">
               <th scope="col" className="px-4 py-2 text-left font-medium">
                 {t("summary.metricColumn")}
               </th>

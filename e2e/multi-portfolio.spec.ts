@@ -72,7 +72,7 @@ test.describe("US-16 ตั้งค่าและเทียบพอร์�
     await page.goto(`/backtest?${TWO}`)
     await expect(ready(page)).toBeVisible({ timeout: 30_000 })
 
-    const header = page.locator("thead tr").first()
+    const header = page.getByTestId("summary-header")
     await expect(header.locator("th")).toHaveCount(4)
     await expect(header).toContainText("ผสม")
     await expect(header).toContainText("หุ้นล้วน")
@@ -96,7 +96,7 @@ test.describe("US-16 ตั้งค่าและเทียบพอร์�
     await page.locator("#p1-name").fill("หุ้นล้วนจริง ๆ")
     await submit(page).click()
 
-    await expect(page.locator("thead tr").first()).toContainText("หุ้นล้วนจริง ๆ", {
+    await expect(page.getByTestId("summary-header")).toContainText("หุ้นล้วนจริง ๆ", {
       timeout: 30_000,
     })
     await expect(page).toHaveURL(/p2\.n=/)
@@ -148,7 +148,7 @@ test.describe("US-16 ตั้งค่าและเทียบพอร์�
     await expect(page.getByTestId("portfolio-cagr")).toHaveText("8.64%")
     await expect(soloReady(page)).toHaveText("$24,884")
     // หัวคอลัมน์ยังเป็นคำเดิม ไม่มีเลขลำดับมารบกวน (BR-CMP-31)
-    await expect(page.locator("thead tr").first()).toContainText("พอร์ตของคุณ")
+    await expect(page.getByTestId("summary-header")).toContainText("พอร์ตของคุณ")
   })
 
   test("AC-CMP-10 ข้อมูลเริ่มช้ากว่า แจ้งช่วงถูกย่อครั้งเดียว", async ({ page }) => {
@@ -198,7 +198,7 @@ test.describe("US-17 กราฟและตารางทุกส่วน�
     // 3 พอร์ต + ตัวเทียบ
     await expect(page.getByTestId("growth-chart").locator(".recharts-line")).toHaveCount(4)
 
-    await page.locator("summary").first().click()
+    await page.getByTestId("growth-table-toggle").click()
     const header = page.getByTestId("growth-year-end").locator("..").locator("thead tr")
     await expect(header).toContainText("ผสม")
     await expect(header).toContainText("หุ้นล้วน")
@@ -319,7 +319,7 @@ test.describe("เทียบหลายพอร์ตในสภาพแ�
     await expect(ready(page)).toBeVisible({ timeout: 30_000 })
 
     await page.getByRole("button", { name: "เปลี่ยนภาษา" }).click()
-    const header = page.locator("thead tr").first()
+    const header = page.getByTestId("summary-header")
     await expect(header).toContainText("ผสม")
     await expect(header).toContainText("Portfolio 3")
   })

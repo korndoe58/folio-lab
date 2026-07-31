@@ -15,7 +15,8 @@ const symbolField = (page: Page) => page.locator("#p0-symbol-0")
 const submit = (page: Page) => page.getByRole("button", { name: "เริ่มทดสอบ", exact: true })
 const weightMessage = (page: Page) => page.getByText(/น้ำหนักรวมของพอร์ตต้องเท่ากับ 100%/)
 const amountMessage = (page: Page) => page.getByText(/เงินตั้งต้นต้องเป็นตัวเลขที่มากกว่า 0/)
-const legends = (page: Page) => page.locator("form legend")
+/** หัวข้อของแต่ละกรอบในฟอร์ม — ผูกกับฟอร์มโดยตรง ไม่ใช่ `legend` ตัวไหนก็ได้ในหน้า */
+const legends = (page: Page) => page.getByTestId("portfolio-form").locator("legend")
 
 /**
  * ตัวเลือกวางกี่บรรทัดจริง ๆ — วัดจากตำแหน่งของสองข้อความในตัวเลือก
