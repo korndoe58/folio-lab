@@ -134,3 +134,27 @@ test.describe("US-07 ถึง US-10 ผลลัพธ์ครบทุกส�
     await mobile.close()
   })
 })
+
+/**
+ * S17b — ข้อนี้อยู่ในชุดของเครื่องให้บริการจริงโดยเจตนา
+ *
+ * ปุ่มคืนค่าเริ่มต้นเคย **ไม่ทำงานเฉพาะบนรุ่นที่ build แล้ว**: หน้านี้ถูกสร้างเป็นหน้านิ่ง
+ * ไว้ล่วงหน้า การสั่งเปลี่ยนเส้นทางฝั่งผู้ใช้ไปที่ `/backtest` ตอนที่อยู่ที่ `/backtest` อยู่แล้ว
+ * จึงถูกมองว่าไปที่เดิมแล้วเงียบไป · บน `next dev` ทำงานปกติ **ชุดทดสอบปกติจึงจับไม่ได้เลย**
+ * — ต้องเดินบนรุ่นจริงเท่านั้น
+ */
+test.describe("US-35 ปุ่มคืนค่าเริ่มต้นบนรุ่นจริง", () => {
+  test("กดแล้วล้างจริง และย้อนกลับได้ผลเดิมคืนมา", async ({ page }) => {
+    await openReference(page)
+    const before = await page.getByTestId("portfolio-endBalance").textContent()
+
+    await page.getByRole("button", { name: "คืนค่าเริ่มต้น", exact: true }).click()
+
+    await expect(page).toHaveURL(url("/backtest"))
+    await expect(page.getByTestId("growth-chart")).toHaveCount(0)
+    await expect(page.locator("#p0-symbol-0")).toHaveValue("")
+
+    await page.goBack()
+    await expect(page.getByTestId("portfolio-endBalance")).toHaveText(before!, { timeout: 60_000 })
+  })
+})
