@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { seriesKey, type AnnualData } from "@/lib/backtest/chart-data"
 import { barOpacity } from "@/components/backtest/series-style"
+import { ChartLegend, benchmarkBar, portfolioBar } from "@/components/backtest/chart-legend"
 import { formatPercent, formatPercentAxis } from "@/lib/backtest/format"
 import { useLanguage } from "@/i18n"
 
@@ -38,6 +39,11 @@ export function AnnualSection({
 }: Props) {
   const { t } = useLanguage()
   const benchmarkLabel = t("summary.benchmarkColumn", { symbol: benchmarkSymbol })
+
+  const legendItems = [
+    ...portfolioNames.map((name, index) => portfolioBar(name, index)),
+    benchmarkBar(benchmarkLabel),
+  ]
 
   return (
     <Card>
@@ -103,6 +109,9 @@ export function AnnualSection({
             </BarChart>
           </ResponsiveContainer>
         </div>
+
+        {/* ป้ายอยู่นอกกรอบกราฟ เพื่อไม่ให้ตัวนับที่ผูกกับกรอบนั้นเปลี่ยนความหมาย (US-34) */}
+        <ChartLegend items={legendItems} testId="annual-legend" />
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[20rem] text-sm">

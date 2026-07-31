@@ -328,6 +328,29 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
     router.push(`/backtest?${query}`)
   }
 
+  /**
+   * ล้างทุกอย่างกลับเป็นค่าเริ่มต้น (US-35)
+   *
+   * ทางหลักคือ**เปลี่ยนลิงก์** แล้วปล่อยให้ `key={urlKey}` เริ่ม session ใหม่เอง — ได้ล้าง
+   * ครบทั้งฟอร์ม ผล ข้อความตรวจสอบ และสัญลักษณ์ที่หาไม่เจอ โดยไม่ต้องเขียนทางล้างเส้นที่สอง
+   * และการเปลี่ยนลิงก์สร้างรายการย้อนกลับให้เอง ปุ่มย้อนกลับจึงเป็นปุ่มเลิกทำ
+   * ([PD-022](../../../docs/product/decision-log.md))
+   *
+   * ถ้าอยู่ที่ลิงก์เปล่าอยู่แล้วต้องล้างในที่แทน เพราะเปลี่ยนลิงก์ไปหาตัวเองไม่เกิดอะไรขึ้น
+   * และการ push ซ้ำจะเพิ่มรายการย้อนกลับที่ไม่มีความหมาย (EC-LOOP-05, EC-LOOP-07)
+   */
+  const handleReset = () => {
+    if (urlKey !== "") {
+      router.push("/backtest")
+      return
+    }
+    setConfig(defaultConfig(LAST_CLOSED_YEAR))
+    setIssues(null)
+    setUnknownSymbols(new Set())
+    setLinkBroken(false)
+    setRun({ kind: "idle" })
+  }
+
   const handleSymbolBlur = async (raw: string) => {
     const symbol = raw.trim().toUpperCase()
     if (symbol === "" || unknownSymbols.has(symbol)) return
@@ -386,6 +409,7 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
         lastClosedYear={LAST_CLOSED_YEAR}
         onChange={handleConfigChange}
         onSubmit={handleSubmit}
+        onReset={handleReset}
         onSymbolBlur={handleSymbolBlur}
       />
 

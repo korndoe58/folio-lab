@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { seriesKey, type DrawdownData } from "@/lib/backtest/chart-data"
 import { BENCHMARK_DASH, lineDash, lineWidth } from "@/components/backtest/series-style"
+import { ChartLegend, benchmarkLine, portfolioLine } from "@/components/backtest/chart-legend"
 import { formatDuration, formatPercent, formatPercentAxis } from "@/lib/backtest/format"
 import { useLanguage } from "@/i18n"
 import { parseYearMonth } from "@/types/series"
@@ -45,6 +46,11 @@ export function DrawdownSection({ data, benchmarkSymbol, portfolioNames }: Props
       year: (n) => t("drawdown.years", { count: n }),
       month: (n) => t("drawdown.months", { count: n }),
     })
+
+  const legendItems = [
+    ...portfolioNames.map((name, index) => portfolioLine(name, index)),
+    benchmarkLine(benchmarkLabel),
+  ]
 
   return (
     <Card>
@@ -128,6 +134,9 @@ export function DrawdownSection({ data, benchmarkSymbol, portfolioNames }: Props
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+
+            {/* ป้ายอยู่นอกกรอบกราฟ เพื่อไม่ให้ตัวนับที่ผูกกับกรอบนั้นเปลี่ยนความหมาย (US-34) */}
+            <ChartLegend items={legendItems} testId="drawdown-legend" />
 
             {/* หนึ่งตารางต่อพอร์ต เพราะช่วงขาดทุนของแต่ละพอร์ตไม่ตรงกัน รวมเป็นแถวเดียวกันไม่ได้ (BR-CMP-30) */}
             {data.perPortfolio.map((portfolio, pIndex) => (

@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { barOpacity } from "@/components/backtest/series-style"
+import { ChartLegend, portfolioBar } from "@/components/backtest/chart-legend"
 import { formatPercent, formatPercentAxis, NO_VALUE } from "@/lib/backtest/format"
 import type { RollingData } from "@/lib/backtest/rolling-data"
 import { useLanguage } from "@/i18n"
@@ -109,6 +110,14 @@ export function RollingSection({ data, portfolioNames }: Props) {
               </BarChart>
             </ResponsiveContainer>
           </div>
+        ) : null}
+
+        {/* ส่วนนี้ไม่วาดตัวเทียบ ป้ายจึงมีแค่พอร์ต (BR-CMP-70, AC-LOOP-07) */}
+        {points.length > 0 ? (
+          <ChartLegend
+            items={portfolioNames.map((name, index) => portfolioBar(name, index))}
+            testId="rolling-legend"
+          />
         ) : null}
 
         <div className="overflow-x-auto">

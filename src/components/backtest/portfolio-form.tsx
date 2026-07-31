@@ -103,6 +103,7 @@ type Props = {
   lastClosedYear: number
   onChange: (next: BacktestConfig) => void
   onSubmit: () => void
+  onReset: () => void
   onSymbolBlur: (symbol: string) => void
 }
 
@@ -117,6 +118,7 @@ export function PortfolioForm({
   lastClosedYear,
   onChange,
   onSubmit,
+  onReset,
   onSymbolBlur,
 }: Props) {
   const { t } = useLanguage()
@@ -479,13 +481,23 @@ export function PortfolioForm({
         </p>
       ) : null}
 
+      {/*
+        คืนค่าเริ่มต้นซ้ายสุด · เริ่มทดสอบชิดขวา (BR-LOOP-15) — ลำดับใน DOM ตรงกับที่ตาเห็น
+        ลำดับการกด Tab จึงเรียงซ้ายไปขวาเหมือนกัน
+
+        ปุ่มคืนค่าเป็น `type="button"` เสมอ ไม่งั้นการกด Enter ในช่องกรอกจะกลายเป็น
+        การล้างค่าทิ้ง เพราะเบราว์เซอร์เลือกปุ่มส่งฟอร์มตัวแรกใน DOM (BR-LOOP-21)
+      */}
       <div className="flex items-center gap-3">
-        <Button type="submit" size="lg" disabled={submitting}>
-          {submitting ? t("form.submitting") : t("form.submit")}
+        <Button type="button" variant="outline" size="lg" disabled={submitting} onClick={onReset}>
+          {t("form.reset")}
         </Button>
         {checkingSymbols ? (
           <span className="text-xs text-muted-foreground">{t("form.checking")}</span>
         ) : null}
+        <Button type="submit" size="lg" disabled={submitting} className="ms-auto">
+          {submitting ? t("form.submitting") : t("form.submit")}
+        </Button>
       </div>
     </form>
   )

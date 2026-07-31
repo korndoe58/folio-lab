@@ -31,6 +31,7 @@
     "benchmark": "Compare with",
     "submit": "Run backtest",
     "submitting": "Running",
+    "reset": "Reset to defaults",
     "checking": "Checking",
     "weightTotal": "Total {sum}%",
     "suggested": "Commonly used symbols",

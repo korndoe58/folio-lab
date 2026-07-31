@@ -31,6 +31,7 @@
     "benchmark": "เทียบกับ",
     "submit": "เริ่มทดสอบ",
     "submitting": "กำลังทดสอบ",
+    "reset": "คืนค่าเริ่มต้น",
     "checking": "กำลังตรวจสอบ",
     "weightTotal": "รวม {sum}%",
     "suggested": "สัญลักษณ์ที่ใช้บ่อย",

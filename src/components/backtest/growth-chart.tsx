@@ -19,6 +19,12 @@ import {
   lineDash,
   lineWidth,
 } from "@/components/backtest/series-style"
+import {
+  ChartLegend,
+  benchmarkLine,
+  contributionLine,
+  portfolioLine,
+} from "@/components/backtest/chart-legend"
 import { formatMoney } from "@/lib/backtest/format"
 import type { Currency } from "@/data/currency"
 import { useLanguage } from "@/i18n"
@@ -65,6 +71,18 @@ export function GrowthChart({
   const domain = logScale
     ? ([Math.min(...values) * 0.9, Math.max(...values) * 1.1] as const)
     : (["auto", "auto"] as const)
+
+  const contributionLabel = (name: string) =>
+    portfolioNames.length === 1 ? t("chart.contributed") : t("chart.contributedOf", { name })
+
+  /** ป้ายมีเฉพาะชุดที่วาดอยู่จริงในกราฟนี้ (BR-LOOP-10) */
+  const legendItems = [
+    ...portfolioNames.map((name, index) => portfolioLine(name, index)),
+    ...portfolioNames
+      .filter((_, index) => withContributions[index])
+      .map((name) => contributionLine(contributionLabel(name))),
+    benchmarkLine(t("summary.benchmarkColumn", { symbol: benchmarkSymbol })),
+  ]
 
   return (
     <Card>
@@ -146,11 +164,7 @@ export function GrowthChart({
                     key={`c${index}`}
                     type="monotone"
                     dataKey={contributionKey(index)}
-                    name={
-                      portfolioNames.length === 1
-                        ? t("chart.contributed")
-                        : t("chart.contributedOf", { name })
-                    }
+                    name={contributionLabel(name)}
                     stroke="var(--muted-foreground)"
                     strokeWidth={1.5}
                     strokeDasharray={CONTRIBUTION_DASH}
@@ -174,6 +188,9 @@ export function GrowthChart({
             </LineChart>
           </ResponsiveContainer>
         </div>
+
+        {/* ป้ายอยู่นอกกรอบกราฟ เพื่อไม่ให้ตัวนับที่ผูกกับกรอบนั้นเปลี่ยนความหมาย (US-34) */}
+        <ChartLegend items={legendItems} testId="growth-legend" />
 
         <p className="sr-only">{t("chart.chartAlt")}</p>
 
@@ -201,9 +218,7 @@ export function GrowthChart({
                   {portfolioNames.map((name, index) =>
                     withContributions[index] ? (
                       <th key={`c${index}`} scope="col" className="py-1 pr-3 text-right font-medium">
-                        {portfolioNames.length === 1
-                          ? t("chart.contributed")
-                          : t("chart.contributedOf", { name })}
+                        {contributionLabel(name)}
                       </th>
                     ) : null,
                   )}
