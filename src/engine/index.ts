@@ -70,3 +70,10 @@ export {
   historicalVaR,
   skewness,
 } from "./tail"
+export {
+  correlation,
+  correlationMatrix,
+  type CorrelationMatrix,
+  type CorrelationSeries,
+} from "./correlation"
+export { decomposePortfolio, type AssetContribution, type DecomposeAsset } from "./decompose"

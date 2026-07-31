@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AnnualData, DrawdownData, GrowthData, MonthlyRow } from "@/lib/backtest/chart-data"
 import type { RollingData } from "@/lib/backtest/rolling-data"
+import type { RiskData } from "@/lib/backtest/risk-data"
 import type { Summary } from "@/lib/backtest/summary"
 import { resolvePortfolioNames } from "@/lib/backtest/portfolio-names"
 import type { Currency } from "@/data/currency"
@@ -15,6 +16,8 @@ import { DrawdownSection } from "./drawdown-section"
 import { GrowthChart } from "./growth-chart"
 import { MonthlySection } from "./monthly-section"
 import { RollingSection } from "./rolling-section"
+import { CorrelationSection } from "./correlation-section"
+import { DecompositionSection } from "./decomposition-section"
 import { SummaryTable } from "./summary-table"
 
 export type RunState =
@@ -27,6 +30,8 @@ export type RunState =
       annual: AnnualData
       drawdown: DrawdownData
       rolling: RollingData
+      /** ตารางรายสินทรัพย์ของ US-28 และ US-29 */
+      risk: RiskData
       monthly: MonthlyRow[]
       range: MonthRange
       benchmarkSymbol: string
@@ -179,6 +184,15 @@ export function RunStatus({ state, onRetry }: { state: RunState; onRetry: () => 
       />
 
       <RollingSection data={state.rolling} portfolioNames={names} />
+
+      {/* สองส่วนรายสินทรัพย์ (US-28, US-29) — วางหลังหน้าต่างเลื่อน ก่อนตารางรายเดือน */}
+      <CorrelationSection matrices={state.risk.correlations} portfolioNames={names} />
+
+      <DecompositionSection
+        decompositions={state.risk.decompositions}
+        portfolioNames={names}
+        currency={state.currency}
+      />
 
       <MonthlySection
         rows={state.monthly}

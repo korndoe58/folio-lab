@@ -356,6 +356,22 @@
     "calmar": {
       "label": "Return per unit of pain",
       "hint": "Annual return against the deepest loss ever endured. Higher means return without having to stomach as much."
+    },
+    "riskContribution": {
+      "label": "Risk share",
+      "hint": "How much of the portfolio's swing comes from this holding, which differs from the money weight. Negative means it dampens the swing."
+    },
+    "returnContribution": {
+      "label": "Profit share",
+      "hint": "How much of the portfolio's total profit came from this holding."
+    },
+    "contributionAmount": {
+      "label": "Profit in money",
+      "hint": "That profit share expressed in money. All holdings together equal the portfolio's profit."
+    },
+    "correlation": {
+      "label": "How closely they move together",
+      "hint": "How much these two move the same way. Near one is almost identical, near zero is unrelated."
     }
   },
   "summary": {
@@ -501,5 +517,21 @@
     "copied": "Copied",
     "manualHeading": "Copy this link yourself",
     "manualHint": "Your browser would not copy it automatically. Select the whole thing and copy it."
+  },
+  "risk": {
+    "portfolioPicker": "Portfolio"
+  },
+  "correlation": {
+    "heading": "How closely your holdings move together",
+    "intro": "A number near 1 means these two move the same way almost all the time, so holding both barely spreads your risk. Near 0 means they go their own ways.",
+    "caption": "Correlation between the holdings of {name}"
+  },
+  "decomposition": {
+    "heading": "What you put in vs. the risk you actually carry",
+    "intro": "Weight is how much money you put in. Risk share is where the portfolio's swings come from. They are not the same, and the ones that differ most are the ones worth a look.",
+    "negativeNote": "A negative figure in the risk column is a good thing: that holding offsets some of the swing from the others.",
+    "caption": "Return and risk breakdown for {name}",
+    "assetColumn": "Holding",
+    "weightColumn": "Weight"
   }
 }

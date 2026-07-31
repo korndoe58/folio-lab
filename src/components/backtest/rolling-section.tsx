@@ -56,7 +56,12 @@ export function RollingSection({ data, portfolioNames }: Props) {
         <h2 className="font-heading text-base leading-snug font-medium">{t("rolling.heading")}</h2>
         <p className="text-sm text-muted-foreground">{t("rolling.intro")}</p>
         {/* ค่าชุดนี้ไม่ขึ้นกับเงินเข้าออกและไม่ถูกปรับเงินเฟ้อ ต้องบอกไว้ (BR-CMP-70) */}
-        <p className="text-xs text-pretty text-muted-foreground">{t("rolling.pureNote")}</p>
+        <p
+          className="text-xs text-pretty text-muted-foreground"
+          data-testid="rolling-pure-note"
+        >
+          {t("rolling.pureNote")}
+        </p>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-3">

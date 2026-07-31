@@ -290,7 +290,8 @@ test.describe("US-18 ใส่เงินเพิ่มหรือถอน�
     await cashflowToggle(page).click()
     await submit(page).click()
     // สองแถวใหม่หายไป และค่าที่เหลือกลับมาเท่าเดิมทุกหลัก
-    await expect(soloCell(page, "totalContributed")).toHaveCount(0)
+    // เผื่อเวลาให้ผลชุดที่สองคำนวณเสร็จ — ตอนรันทั้งชุดพร้อมกันจะช้ากว่า 5 วินาทีได้
+    await expect(soloCell(page, "totalContributed")).toHaveCount(0, { timeout: 30_000 })
     // ใช้ตัวตรวจที่รอจนค่าตรง ไม่ใช่อ่านครั้งเดียว — ผลชุดใหม่มาแบบ async
     // อ่านทันทีอาจได้ค่าของรอบก่อนที่ยังค้างอยู่บนจอ
     await expect(soloCell(page, "endBalance")).toHaveText(before.endBalance)

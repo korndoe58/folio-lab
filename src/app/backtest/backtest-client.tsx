@@ -23,6 +23,7 @@ import {
   buildMonthlyData,
 } from "@/lib/backtest/chart-data"
 import { buildRollingData } from "@/lib/backtest/rolling-data"
+import { buildRiskData } from "@/lib/backtest/risk-data"
 import { assembleSummary, type PortfolioOutcome } from "@/lib/backtest/summary"
 import {
   buildFlows,
@@ -262,6 +263,23 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
         drawdown: buildDrawdownData(portfolioSeries, benchmarkReturns),
         // คิดจากชุดผลตอบแทนของพอร์ตล้วน ๆ จึงไม่รับทั้งเงินเข้าออกและตัวเลือกเงินเฟ้อ (BR-CMP-70)
         rolling: buildRollingData(portfolioSeries),
+        /**
+         * ตารางรายสินทรัพย์ (US-28, US-29) — ใช้ชุดผลตอบแทนรายตัวที่ตัดช่วงร่วมมาแล้ว
+         * ซึ่งเป็นวัตถุดิบเดียวกับที่ `portfolioReturns` ได้รับ บวกน้ำหนักรายเดือนที่มันคืนมา
+         */
+        risk: buildRiskData(
+          results.map((result, i) => ({
+            assets: holdings[i].map((asset) => ({
+              symbol: asset.symbol,
+              weight: asset.weight,
+              returns: inRange(asset.returns),
+            })),
+            monthlyWeights: result.weights,
+            returns: result.returns,
+            profit: (result.values.at(-1)?.value ?? target.amount) - target.amount - outcomes[i].contributed,
+          })),
+          { symbol: target.benchmark.trim().toUpperCase(), returns: benchmarkReturns },
+        ),
         monthly: buildMonthlyData(portfolioSeries, benchmarkReturns),
         range: shared.range,
         benchmarkSymbol: target.benchmark.trim().toUpperCase(),
