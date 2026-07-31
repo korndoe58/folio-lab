@@ -79,7 +79,8 @@
     "cashflowPlannedTotal": "จะใส่ทั้งหมดประมาณ {total} ใน {periods} งวด",
     "cashflowPlannedTotalWithdraw": "จะถอนทั้งหมดประมาณ {total} ใน {periods} งวด",
     "cashflowPlannedUnknown": "ตั้งจำนวนต่องวดแล้วจะเห็นยอดรวมที่นี่",
-    "symbolSince": "ข้อมูลจาก {year}"
+    "symbolSince": "ข้อมูลจาก {year}",
+    "testSettings": "ช่วงเวลาและเงินตั้งต้น"
   },
   "symbols": {
     "aapl": "แอปเปิล",

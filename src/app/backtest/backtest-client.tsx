@@ -11,6 +11,7 @@ import { decodeConfig, defaultConfig, encodeConfig, isEmptyParams } from "@/lib/
 import {
   filledRows,
   hasIssues,
+  retainIssues,
   validateConfig,
   NO_ISSUES,
   type FormIssues,
@@ -287,6 +288,28 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
     [executeRun, unknownSymbols],
   )
 
+  /**
+   * แก้ค่าในฟอร์ม — ข้อความที่แก้ถูกแล้วหายทันที แต่ปัญหาที่เพิ่งเกิดระหว่างพิมพ์ไม่โผล่ขึ้นมา
+   * ([PD-018](../../../docs/product/decision-log.md))
+   *
+   * ก่อนกดรันครั้งแรก `issues` ยังเป็น null ฟอร์มจึงเงียบสนิทเหมือนเดิม (BR-FRM-15)
+   * `validateConfig` เป็นฟังก์ชันบริสุทธิ์ จึงเรียกทุกครั้งที่ค่าเปลี่ยนได้โดยไม่มีผลข้างเคียง
+   */
+  const handleConfigChange = useCallback(
+    (next: BacktestConfig) => {
+      setConfig(next)
+      setIssues((current) =>
+        current === null
+          ? null
+          : retainIssues(
+              current,
+              validateConfig(next, { lastClosedYear: LAST_CLOSED_YEAR, unknownSymbols }),
+            ),
+      )
+    },
+    [unknownSymbols],
+  )
+
   // เปิดลิงก์ที่มีค่าครบ → รันเองทันทีโดยผู้ใช้ไม่ต้องกด (BR-URL-05)
   const started = useRef(false)
   useEffect(() => {
@@ -361,7 +384,7 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
         checkingSymbols={checking}
         submitting={run.kind === "loading"}
         lastClosedYear={LAST_CLOSED_YEAR}
-        onChange={setConfig}
+        onChange={handleConfigChange}
         onSubmit={handleSubmit}
         onSymbolBlur={handleSymbolBlur}
       />

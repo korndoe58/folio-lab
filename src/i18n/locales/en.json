@@ -79,7 +79,8 @@
     "cashflowPlannedTotal": "About {total} in total over {periods} periods",
     "cashflowPlannedTotalWithdraw": "About {total} withdrawn in total over {periods} periods",
     "cashflowPlannedUnknown": "Set an amount per period to see the total here.",
-    "symbolSince": "data from {year}"
+    "symbolSince": "data from {year}",
+    "testSettings": "Period and starting amount"
   },
   "symbols": {
     "aapl": "Apple",

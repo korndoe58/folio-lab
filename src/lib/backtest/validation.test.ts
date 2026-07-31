@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
 import type { BacktestConfig, PortfolioRow } from "@/types/backtest"
-import { evenWeights, hasIssues, validateConfig, weightSum } from "./validation"
+import { evenWeights, hasIssues, retainIssues, validateConfig, weightSum } from "./validation"
 import { makePortfolio } from "./url"
 
 const LAST_CLOSED_YEAR = 2026
@@ -330,5 +330,109 @@ describe("US-18 + US-19 การตรวจเงินเข้าออก�
       }),
     )
     expect(hasIssues(issues)).toBe(false)
+  })
+})
+
+describe("US-27 จังหวะที่ข้อความตรวจสอบโผล่และหาย (PD-018)", () => {
+  const seen = (c: BacktestConfig) => check(c)
+
+  test("AC-FRM-14 ช่องที่แก้ถูกแล้ว ข้อความหายทันที", () => {
+    const broken = seen(config({ assets: [{ symbol: "VTI", weight: "60" }] })) // รวมได้ 60
+    expect(broken.portfolios[0].portfolio?.code).toBe("V-001")
+
+    const fixed = seen(config({ assets: [{ symbol: "VTI", weight: "100" }] }))
+    expect(retainIssues(broken, fixed).portfolios[0].portfolio).toBeNull()
+  })
+
+  test("AC-FRM-15 ช่องที่ยังไม่ถูก ข้อความอยู่ต่อพร้อมค่าล่าสุด", () => {
+    const before = seen(config({ assets: [{ symbol: "VTI", weight: "60" }] }))
+    const after = seen(config({ assets: [{ symbol: "VTI", weight: "70" }] }))
+    const kept = retainIssues(before, after)
+
+    expect(kept.portfolios[0].portfolio?.code).toBe("V-001")
+    // ★ ข้อความต้องบอกผลรวมใหม่ ไม่ใช่เลขตอนกดรัน
+    expect(before.portfolios[0].portfolio?.params?.sum).toBe("60")
+    expect(kept.portfolios[0].portfolio?.params?.sum).toBe("70")
+  })
+
+  test("AC-FRM-16 ปัญหาที่เพิ่งเกิดระหว่างพิมพ์ ไม่ถูกเพิ่มเข้ามา", () => {
+    // เดิมผิดที่น้ำหนักรวม ส่วนเงินตั้งต้นยังถูกอยู่
+    const before = seen(config({ assets: [{ symbol: "VTI", weight: "60" }] }))
+    expect(before.amount).toBeNull()
+
+    // ผู้ใช้กำลังลบเงินตั้งต้นเพื่อพิมพ์ใหม่ — ผ่านสถานะที่ตรวจแล้วผิด
+    const typing = seen(config({ assets: [{ symbol: "VTI", weight: "60" }], amount: 0 }))
+    expect(typing.amount?.code).toBe("V-006")
+
+    const kept = retainIssues(before, typing)
+    expect(kept.amount, "ช่องที่ยังไม่เคยมีข้อความต้องเงียบต่อไป").toBeNull()
+    expect(kept.portfolios[0].portfolio?.code, "ของเดิมที่ยังผิดยังอยู่").toBe("V-001")
+  })
+
+  test("EC-FRM-12 แก้ช่องหนึ่งถูกแต่อีกช่องยังผิด", () => {
+    const before = seen(config({ assets: [{ symbol: "VTI", weight: "60" }], amount: 0 }))
+    expect(before.portfolios[0].portfolio?.code).toBe("V-001")
+    expect(before.amount?.code).toBe("V-006")
+
+    const after = seen(config({ assets: [{ symbol: "VTI", weight: "100" }], amount: 0 }))
+    const kept = retainIssues(before, after)
+
+    expect(kept.portfolios[0].portfolio).toBeNull()
+    expect(kept.amount?.code).toBe("V-006")
+  })
+
+  test("EC-FRM-10 เพิ่มแถวสินทรัพย์แล้วข้อความไม่เลื่อนไปผิดแถว", () => {
+    // แถวแรกน้ำหนักผิดรูปแบบ
+    const before = seen(config({ assets: [{ symbol: "VTI", weight: "abc" }] }))
+    expect(before.portfolios[0].rows[0]?.code).toBe("V-007")
+
+    // เพิ่มแถวว่างต่อท้าย
+    const after = seen(
+      config({ assets: [{ symbol: "VTI", weight: "abc" }, { symbol: "", weight: "" }] }),
+    )
+    const kept = retainIssues(before, after)
+
+    expect(kept.portfolios[0].rows[0]?.code).toBe("V-007")
+    expect(kept.portfolios[0].rows[1], "แถวใหม่ที่ยังว่างต้องเงียบ").toBeNull()
+  })
+
+  test("EC-FRM-09 ลบแถวที่มีปัญหาทิ้ง ข้อความหายไปกับแถว", () => {
+    const before = seen(
+      config({ assets: [{ symbol: "VTI", weight: "100" }, { symbol: "BND", weight: "abc" }] }),
+    )
+    expect(before.portfolios[0].rows[1]?.code).toBe("V-007")
+
+    const after = seen(config({ assets: [{ symbol: "VTI", weight: "100" }] }))
+    const kept = retainIssues(before, after)
+
+    expect(kept.portfolios[0].rows).toHaveLength(1)
+    expect(hasIssues(kept)).toBe(false)
+  })
+
+  test("EC-FRM-11 ลบพอร์ตทิ้ง พอร์ตที่เหลือไม่รับข้อความผิดพอร์ต", () => {
+    const twoPortfolios = (weights: string[]) =>
+      config({
+        portfolios: weights.map((w) => makePortfolio({ assets: [{ symbol: "VTI", weight: w }] })),
+      })
+
+    // พอร์ตแรกถูก พอร์ตที่สองผิด
+    const before = seen(twoPortfolios(["100", "60"]))
+    expect(before.portfolios[0].portfolio).toBeNull()
+    expect(before.portfolios[1].portfolio?.code).toBe("V-001")
+
+    // ลบพอร์ตแรกทิ้ง เหลือพอร์ตที่ผิดกลายเป็นดัชนี 0
+    const after = seen(twoPortfolios(["60"]))
+    const kept = retainIssues(before, after)
+
+    // ดัชนี 0 เดิมไม่มีปัญหา ข้อความจึงยังไม่โผล่จนกว่าจะกดรันใหม่ — ไม่ใช่ยกของพอร์ตอื่นมาใส่
+    expect(kept.portfolios).toHaveLength(1)
+    expect(kept.portfolios[0].portfolio).toBeNull()
+  })
+
+  test("BR-FRM-21 กฎการตรวจไม่เปลี่ยน — ตรวจครบเหมือนเดิมเสมอ", () => {
+    const all = seen(config({ assets: [{ symbol: "VTI", weight: "60" }], amount: 0, endYear: 2099 }))
+    expect(all.portfolios[0].portfolio?.code).toBe("V-001")
+    expect(all.amount?.code).toBe("V-006")
+    expect(all.endYear?.code).toBe("V-005")
   })
 })

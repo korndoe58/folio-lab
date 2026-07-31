@@ -77,6 +77,38 @@ export function portfolioIssuesAt(issues: FormIssues, index: number): PortfolioI
   return issues.portfolios[index] ?? NO_PORTFOLIO_ISSUES
 }
 
+/**
+ * คงไว้เฉพาะปัญหาที่**เดิมมีอยู่และยังไม่ถูกแก้** ([PD-018](../../../docs/product/decision-log.md))
+ *
+ * แยกจังหวะ "ลบข้อความ" ออกจากจังหวะ "เพิ่มข้อความ" — ช่องที่แก้ถูกแล้วข้อความหายทันที (BR-FRM-16)
+ * ส่วนปัญหาที่เพิ่งเกิดระหว่างที่ผู้ใช้ยังพิมพ์ไม่จบจะไม่ถูกเพิ่มเข้ามา (BR-FRM-17)
+ * เพราะการเตือนคนที่ยังทำไม่เสร็จคือการขัดจังหวะ ส่วนการยกเลิกคำเตือนที่แก้แล้วไม่กวนใคร
+ *
+ * หยิบ**ตัวปัญหาจากฝั่งใหม่**เสมอ ข้อความจึงใช้ค่าล่าสุด เช่นผลรวมน้ำหนักที่เปลี่ยนไปแล้ว (BR-FRM-19)
+ */
+export function retainIssues(previous: FormIssues, next: FormIssues): FormIssues {
+  const keep = <T,>(before: T | null, after: T | null): T | null =>
+    before !== null && after !== null ? after : null
+
+  return {
+    // ดัชนีพอร์ตและแถวจัดแนวตามชุดใหม่ — พอร์ตหรือแถวที่ถูกลบไปจึงไม่ทิ้งข้อความค้างไว้ผิดที่
+    portfolios: next.portfolios.map((afterPortfolio, index) => {
+      const beforePortfolio = previous.portfolios[index] ?? NO_PORTFOLIO_ISSUES
+      return {
+        rows: afterPortfolio.rows.map((afterRow, rowIndex) =>
+          keep(beforePortfolio.rows[rowIndex] ?? null, afterRow),
+        ),
+        portfolio: keep(beforePortfolio.portfolio, afterPortfolio.portfolio),
+      }
+    }),
+    startYear: keep(previous.startYear, next.startYear),
+    endYear: keep(previous.endYear, next.endYear),
+    amount: keep(previous.amount, next.amount),
+    benchmark: keep(previous.benchmark, next.benchmark),
+    form: keep(previous.form, next.form),
+  }
+}
+
 export function filledRows(assets: PortfolioRow[]): PortfolioRow[] {
   return assets.filter((row) => row.symbol.trim() !== "")
 }

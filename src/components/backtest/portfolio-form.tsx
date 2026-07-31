@@ -191,11 +191,9 @@ export function PortfolioForm({
         const errorId = `p${pIndex}-error`
 
         return (
-          <fieldset
-            key={pIndex}
-            className={multiple ? "flex flex-col gap-3 rounded-lg border p-4" : "flex flex-col gap-3"}
-          >
-            <legend className={multiple ? "px-1 text-sm font-medium" : "mb-2 text-sm font-medium"}>
+          // กรอบและหัวข้อมีทุกโหมด เพื่อให้เห็นขอบเขตว่าอะไรเป็นค่าของพอร์ต (BR-FRM-10)
+          <fieldset key={pIndex} className="flex flex-col gap-3 rounded-lg border p-4">
+            <legend className="px-1 text-sm font-medium">
               {multiple ? names[pIndex] : t("form.assets")}
             </legend>
 
@@ -386,11 +384,15 @@ export function PortfolioForm({
         </Button>
       </div>
 
-      {/* ค่าที่เป็นฐานของการเทียบ กรอกครั้งเดียวใช้ร่วมกันทุกพอร์ต (PD-014) */}
-      <fieldset className="flex flex-col gap-4">
-        {multiple ? (
-          <legend className="mb-2 text-sm font-medium">{t("form.sharedSettings")}</legend>
-        ) : null}
+      {/*
+        ค่าที่เป็นฐานของการเทียบ กรอกครั้งเดียวใช้ร่วมกันทุกพอร์ต (PD-014)
+        มีกรอบและหัวข้อทุกโหมด (BR-FRM-12) · คำว่า "ทุกพอร์ต" ใช้เฉพาะตอนมีหลายพอร์ตจริง
+        เพราะในโหมดพอร์ตเดียวมันอ่านแปลก (BR-FRM-13)
+      */}
+      <fieldset className="flex flex-col gap-4 rounded-lg border p-4">
+        <legend className="px-1 text-sm font-medium">
+          {multiple ? t("form.sharedSettings") : t("form.testSettings")}
+        </legend>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
@@ -514,7 +516,8 @@ function RebalanceControls({
   const showBandHint = Number.isFinite(points) && portfolio.bandPoints.trim() !== ""
 
   return (
-    <div className="flex flex-col gap-1">
+    // เส้นคั่นแบบเดียวกับบล็อกเงินเข้าออก ทำให้เห็นสามชั้นในการ์ด (BR-FRM-11)
+    <div className="flex flex-col gap-1 border-t pt-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <div className="flex flex-1 flex-col gap-1">
           <Label htmlFor={selectId} className="text-xs text-muted-foreground">
