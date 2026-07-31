@@ -25,6 +25,7 @@ export default function Home() {
             <CardDescription className="text-balance text-base">
               {t("app.tagline")}
             </CardDescription>
+            <p className="text-muted-foreground text-sm">{t("app.taglineNote")}</p>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-2">
             <Link
