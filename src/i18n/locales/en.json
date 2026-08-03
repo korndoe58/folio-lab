@@ -373,6 +373,15 @@
     "correlation": {
       "label": "How closely they move together",
       "hint": "How much these two move the same way. Near one is almost identical, near zero is unrelated."
+    },
+    "safeWithdrawalRate": {
+      "label": "Safe withdrawal rate"
+    },
+    "withdrawalAmount": {
+      "label": "Monthly amount"
+    },
+    "testedWindows": {
+      "label": "Starting points tested"
     }
   },
   "summary": {
