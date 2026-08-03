@@ -7,6 +7,7 @@ import { PortfolioForm } from "@/components/backtest/portfolio-form"
 import { RunStatus, type RunState } from "@/components/backtest/run-status"
 import { getBrowserProvider } from "@/data/providers/browser"
 import { loadPortfolioSeries } from "@/data/market/load-portfolio"
+import { track } from "@/data/analytics/ga"
 import { decodeConfig, defaultConfig, encodeConfig, isEmptyParams } from "@/lib/backtest/url"
 import {
   filledRows,
@@ -296,6 +297,24 @@ function BacktestSession({ urlKey, initialConfig, linkBroken: initialLinkBroken,
         benchmarkSymbol: target.benchmark.trim().toUpperCase(),
         clamped: clampedBy,
       })
+
+      /**
+       * นับเฉพาะตอนที่ผลลัพธ์ขึ้นสำเร็จ (BR-USE-07) — ทุกทางที่ออกก่อนถึงบรรทัดนี้คือกดแล้วพัง
+       * ซึ่งไม่ใช่การใช้งาน ถ้านับด้วยอัตราที่ได้จะสูงเกินจริง
+       *
+       * ส่งรูปร่างเท่านั้น ไม่ส่งจำนวนเงินและไม่ส่งสัญลักษณ์ที่ผู้ใช้กรอก (BR-USE-01)
+       */
+      const portfolioCount = target.portfolios.length as 1 | 2 | 3
+      track("run_backtest", {
+        portfolio_count: portfolioCount,
+        base_currency: target.baseCurrency,
+        span_years: target.endYear - target.startYear + 1,
+        inflation_adjusted: target.inflationAdjusted,
+        has_cashflow: target.portfolios.some((p) => p.cashflow !== null),
+      })
+      if (portfolioCount > 1) {
+        track("compare_portfolios", { portfolio_count: portfolioCount as 2 | 3 })
+      }
     },
     [],
   )

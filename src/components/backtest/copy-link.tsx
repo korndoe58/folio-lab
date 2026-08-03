@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Check, Link2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { track } from "@/data/analytics/ga"
 import { useLanguage } from "@/i18n"
 
 /** เวลาที่ป้าย "คัดลอกแล้ว" อยู่บนจอก่อนหายเอง โดยผู้ใช้ไม่ต้องกดปิด (BR-CMP-84) */
@@ -40,6 +41,8 @@ export function CopyLink() {
 
     setManualLink(null)
     setCopied(true)
+    // ทางสำรองที่คัดลอกไม่ได้ออกไปก่อนถึงบรรทัดนี้แล้ว จึงนับเฉพาะที่สำเร็จจริง (BR-USE-12)
+    track("copy_link", {})
     // กดซ้ำติด ๆ กันต้องไม่ทำให้ป้ายซ้อนกัน — ตั้งเวลาใหม่แทนที่จะเพิ่มอีกตัว (EC-CMP-33)
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => setCopied(false), FEEDBACK_MS)

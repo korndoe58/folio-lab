@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { track } from "@/data/analytics/ga"
 import { useLanguage } from "@/i18n"
 
 /**
@@ -23,7 +24,11 @@ export function SiteHeader() {
           variant="ghost"
           size="sm"
           aria-label={t("lang.label")}
-          onClick={() => setLang(lang === "th" ? "en" : "th")}
+          onClick={() => {
+            const to = lang === "th" ? "en" : "th"
+            setLang(to)
+            track("switch_language", { to })
+          }}
         >
           {t("lang.switch")}
         </Button>

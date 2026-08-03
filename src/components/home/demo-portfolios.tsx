@@ -7,6 +7,7 @@ import {
   demoPortfolioHref,
   demoPortfolioMix,
 } from "@/lib/backtest/demo-portfolios"
+import { track } from "@/data/analytics/ga"
 import { useLanguage } from "@/i18n"
 
 /**
@@ -31,6 +32,8 @@ export function DemoPortfolios() {
             <Link
               href={demoPortfolioHref(portfolio)}
               data-testid={`demo-${portfolio.key}`}
+              // ยิงตอนกดก่อนเปลี่ยนหน้า · ชื่อชุดมาจากทะเบียนของเราเอง ไม่ใช่ที่ผู้ใช้พิมพ์ (BR-USE-16)
+              onClick={() => track("use_demo_portfolio", { preset: portfolio.key })}
               className="flex w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <Card className="flex w-full flex-col transition-colors hover:border-primary/60">

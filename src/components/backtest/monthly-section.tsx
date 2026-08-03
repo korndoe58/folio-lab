@@ -2,6 +2,7 @@
 
 import { Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { track } from "@/data/analytics/ga"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import type { MonthlyRow } from "@/lib/backtest/chart-data"
 import { buildMonthlyCsv, csvFileName } from "@/lib/backtest/csv"
@@ -66,6 +67,7 @@ export function MonthlySection({
     link.download = csvFileName(range, t("monthly.fileNamePrefix"))
     link.click()
     URL.revokeObjectURL(url)
+    track("download_csv", { month_count: rows.length })
   }
 
   return (

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Noto_Sans_Thai } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/i18n";
+import { Analytics } from "@/components/analytics";
 import "./globals.css";
 
 const notoSansThai = Noto_Sans_Thai({
@@ -70,6 +71,7 @@ export default function RootLayout({
         >
           <LanguageProvider>{children}</LanguageProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
